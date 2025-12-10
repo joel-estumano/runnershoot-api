@@ -3,7 +3,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { SwaggerTheme, SwaggerThemeNameEnum } from 'swagger-themes';
 
 export const setupSwagger = (app: INestApplication): void => {
-  const title = 'Runer Shoot';
+  const title = 'Runner Shoot';
   const config = new DocumentBuilder()
     .setTitle(title)
     .setDescription('API documentation')

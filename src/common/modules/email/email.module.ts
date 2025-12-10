@@ -44,7 +44,7 @@ const handlebarsHelpers = {
         },
         defaults: {
           // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-          from: `Runer Shoot <${mailerConfigKey.credentials.user}>`,
+          from: `Runner Shoot <${mailerConfigKey.credentials.user}>`,
         },
         template: {
           dir: templatesPath,
