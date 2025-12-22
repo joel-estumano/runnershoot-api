@@ -13,9 +13,11 @@ export class EmailService {
       template: 'welcome-email';
     },
   ): Promise<SentMessageInfo> {
-    return this.mailerService.sendMail(options).catch((error: unknown) => {
-      this.logger.error({ error });
-      throw error;
-    });
+    return await this.mailerService
+      .sendMail(options)
+      .catch((error: unknown) => {
+        this.logger.error({ error });
+        throw error;
+      });
   }
 }
