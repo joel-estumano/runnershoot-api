@@ -1,11 +1,11 @@
 import { BaseEntity } from '@common/shared/entities/base.entity';
-import {
-  Column,
-  Entity,
-  JoinColumn,
-  OneToOne,
-  PrimaryGeneratedColumn,
-} from 'typeorm';
+import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+
+export enum EnumSecurityTokenType {
+  EMAIL_VERIFICATION = 'EMAIL_VERIFICATION',
+  PASSWORD_RESET = 'PASSWORD_RESET',
+  TWO_FACTOR_AUTH = '2FA',
+}
 
 import { UserEntity } from './user.entity';
 
@@ -14,12 +14,18 @@ export class UserSecurityTokenEntity extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @OneToOne(() => UserEntity, (user) => user.securityToken, {
+  @ManyToOne(() => UserEntity, (user) => user.securityTokens, {
     onDelete: 'CASCADE',
   })
-  @JoinColumn()
   user: UserEntity;
 
   @Column({ type: 'varchar', length: 512, nullable: true, unique: true })
   token: string;
+
+  @Column({
+    type: 'enum',
+    enum: EnumSecurityTokenType,
+    nullable: false,
+  })
+  type: EnumSecurityTokenType;
 }

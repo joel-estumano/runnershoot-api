@@ -9,7 +9,10 @@ import { Repository } from 'typeorm';
 import { CreateUserDto } from './dto/create-user.dto';
 import { OutputUserDto } from './dto/output-user.dto';
 import { UserEntity } from './entities/user.entity';
-import { UserSecurityTokenEntity } from './entities/user-security-token.entity';
+import {
+  EnumSecurityTokenType,
+  UserSecurityTokenEntity,
+} from './entities/user-security-token.entity';
 import { UserCreatedEvent } from './events/user.event';
 
 @Injectable()
@@ -69,8 +72,10 @@ export class UsersService {
   private async dispatchEvent(user: UserEntity, event: 'created') {
     switch (event) {
       case 'created': {
-        const securityTokenEntity =
-          await this.createOrUpdateUserSecurityToken(user);
+        const securityTokenEntity = await this.createOrUpdateUserSecurityToken(
+          user,
+          EnumSecurityTokenType.EMAIL_VERIFICATION,
+        );
         const userCreatedEvent = new UserCreatedEvent({
           id: user.id,
           firstName: user.firstName,
@@ -86,26 +91,26 @@ export class UsersService {
 
   private async createOrUpdateUserSecurityToken(
     user: UserEntity,
+    type: EnumSecurityTokenType,
   ): Promise<UserSecurityTokenEntity> {
-    // 🎫 Gera novo token JWT usando SecurityService
-    const token = this.securityService.generateToken(
-      { sub: user.id }, // payload: id do usuário
-    );
+    const token = this.securityService.generateToken({
+      sub: user.id,
+      purpose: type,
+    });
 
-    // 🔍 Verifica se já existe token para o usuário
+    // 🔍 Verifica se já existe token do mesmo tipo para o usuário
     let userSecurityToken = await this.usersSecurityTokenRepository.findOne({
-      where: { user: { id: user.id } },
-      relations: ['user'], // garante que o relacionamento seja carregado
+      where: { user: { id: user.id }, type },
+      relations: ['user'],
     });
 
     if (userSecurityToken) {
-      // Atualiza token existente
       userSecurityToken.token = token;
     } else {
-      // Cria novo token
       userSecurityToken = this.usersSecurityTokenRepository.create({
         token,
         user,
+        type,
       });
     }
 
@@ -116,44 +121,65 @@ export class UsersService {
   private async validateAndCleanUserToken(
     userId: number,
     token: string,
+    type: EnumSecurityTokenType,
   ): Promise<void> {
     const userSecurityToken = await this.usersSecurityTokenRepository.findOne({
-      where: { user: { id: userId } },
+      where: { user: { id: userId }, type },
       relations: ['user'],
     });
 
     if (!userSecurityToken) {
-      throw new BadRequestException('Security token not found');
+      throw new BadRequestException(`Security token of type ${type} not found`);
     }
 
     const decoded = this.securityService.verifyToken(token);
 
+    // Se inválido/expirado OU não corresponde ao que está no banco
     if (!decoded || userSecurityToken.token !== token) {
-      // ⚠️ invalida token no banco para não manter lixo
-      userSecurityToken.token = '';
-      await this.usersSecurityTokenRepository.save(userSecurityToken);
-
-      throw new BadRequestException('Invalid or expired token');
+      await this.usersSecurityTokenRepository.remove(userSecurityToken);
+      throw new BadRequestException(`Invalid or expired ${type} token`);
     }
   }
 
   async userEmailVerification(email: string, token: string) {
-    // 🔍 Busca usuário pelo email
     const user = await this.usersRepository.findOne({ where: { email } });
-    if (!user) {
-      throw new BadRequestException('User not found');
-    }
+    if (!user) throw new BadRequestException('User not found');
 
-    // ✅ Valida token (delegado para método privado)
-    await this.validateAndCleanUserToken(user.id, token);
+    await this.validateAndCleanUserToken(
+      user.id,
+      token,
+      EnumSecurityTokenType.EMAIL_VERIFICATION,
+    );
 
-    // 📩 Atualiza status do usuário
     user.emailVerified = true;
     await this.usersRepository.save(user);
 
-    // 🗑️ Remove token usado
-    await this.usersSecurityTokenRepository.delete({ user: { id: user.id } });
+    await this.usersSecurityTokenRepository.delete({
+      user: { id: user.id },
+      type: EnumSecurityTokenType.EMAIL_VERIFICATION,
+    });
 
     return { message: 'Email verified successfully' };
+  }
+
+  async resetPassword(userId: number, token: string, newPassword: string) {
+    await this.validateAndCleanUserToken(
+      userId,
+      token,
+      EnumSecurityTokenType.PASSWORD_RESET,
+    );
+
+    const user = await this.usersRepository.findOne({ where: { id: userId } });
+    if (!user) throw new BadRequestException('User not found');
+
+    user.password = await this.securityService.hashPassword(newPassword);
+    await this.usersRepository.save(user);
+
+    await this.usersSecurityTokenRepository.delete({
+      user: { id: userId },
+      type: EnumSecurityTokenType.PASSWORD_RESET,
+    });
+
+    return { message: 'Password reset successfully' };
   }
 }
