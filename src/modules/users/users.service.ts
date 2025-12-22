@@ -1,6 +1,5 @@
 import { appUrlConfig } from '@common/configs';
-import appSecretConfig from '@common/configs/app-secret.config';
-import { PasswordHelper } from '@common/helpers/password.helper';
+import { SecurityService } from '@common/modules/security/security.service';
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import type { ConfigType } from '@nestjs/config';
 import { EventEmitter2 } from '@nestjs/event-emitter';
@@ -21,19 +20,15 @@ export class UsersService {
     @Inject('USERS_SECURITY_TOKEN_REPOSITORY')
     private readonly usersSecurityTokenRepository: Repository<UserSecurityTokenEntity>,
     private readonly eventEmitter: EventEmitter2,
-    // inject appSecretConfig
-    @Inject(appSecretConfig.KEY)
-    private readonly appSecretConfigKey: ConfigType<typeof appSecretConfig>,
-    // inject appUrlConfig
     @Inject(appUrlConfig.KEY)
     private readonly appUrlConfigKey: ConfigType<typeof appUrlConfig>,
+
+    private readonly securityService: SecurityService,
   ) {}
 
   async create(createUserDto: CreateUserDto): Promise<OutputUserDto> {
-    const secretKey = this.appSecretConfigKey.secret;
-    const hashedPassword = await PasswordHelper.hashPassword(
+    const hashedPassword = await this.securityService.hashPassword(
       createUserDto.password,
-      secretKey,
     );
 
     const user = this.usersRepository.create({
@@ -92,13 +87,12 @@ export class UsersService {
   private async createOrUpdateUserSecurityToken(
     user: UserEntity,
   ): Promise<UserSecurityTokenEntity> {
-    // Gera novo token e validade
-    const securityToken = await PasswordHelper.generateSecurityToken(
-      this.appSecretConfigKey.secret,
-      this.appSecretConfigKey.expiresIn,
+    // 🎫 Gera novo token JWT usando SecurityService
+    const token = this.securityService.generateToken(
+      { sub: user.id }, // payload: id do usuário
     );
 
-    // Verifica se já existe token para o usuário
+    // 🔍 Verifica se já existe token para o usuário
     let userSecurityToken = await this.usersSecurityTokenRepository.findOne({
       where: { user: { id: user.id } },
       relations: ['user'], // garante que o relacionamento seja carregado
@@ -106,48 +100,59 @@ export class UsersService {
 
     if (userSecurityToken) {
       // Atualiza token existente
-      userSecurityToken.token = securityToken.token;
-      userSecurityToken.validUntil = securityToken.validUntil;
+      userSecurityToken.token = token;
     } else {
       // Cria novo token
       userSecurityToken = this.usersSecurityTokenRepository.create({
-        ...securityToken,
+        token,
         user,
       });
     }
 
-    // Salva (cria ou atualiza)
+    // 💾 Salva (cria ou atualiza)
     return await this.usersSecurityTokenRepository.save(userSecurityToken);
   }
 
+  private async validateAndCleanUserToken(
+    userId: number,
+    token: string,
+  ): Promise<void> {
+    const userSecurityToken = await this.usersSecurityTokenRepository.findOne({
+      where: { user: { id: userId } },
+      relations: ['user'],
+    });
+
+    if (!userSecurityToken) {
+      throw new BadRequestException('Security token not found');
+    }
+
+    const decoded = this.securityService.verifyToken(token);
+
+    if (!decoded || userSecurityToken.token !== token) {
+      // ⚠️ invalida token no banco para não manter lixo
+      userSecurityToken.token = '';
+      await this.usersSecurityTokenRepository.save(userSecurityToken);
+
+      throw new BadRequestException('Invalid or expired token');
+    }
+  }
+
   async userEmailVerification(email: string, token: string) {
+    // 🔍 Busca usuário pelo email
     const user = await this.usersRepository.findOne({ where: { email } });
     if (!user) {
       throw new BadRequestException('User not found');
     }
 
-    const userSecurityToken = await this.usersSecurityTokenRepository.findOne({
-      where: { user: { id: user.id } },
-      relations: ['user'],
-    });
-    if (!userSecurityToken) {
-      throw new BadRequestException('Security token not found');
-    }
+    // ✅ Valida token (delegado para método privado)
+    await this.validateAndCleanUserToken(user.id, token);
 
-    const verify = await PasswordHelper.verifySecurityToken(
-      this.appSecretConfigKey.secret,
-      token,
-      userSecurityToken.validUntil,
-    );
-
-    if (!verify) {
-      throw new BadRequestException('Invalid or expired token');
-    }
-
-    // Aqui você pode atualizar o status do usuário para "verificado" se desejar
+    // 📩 Atualiza status do usuário
     user.emailVerified = true;
     await this.usersRepository.save(user);
-    await this.usersSecurityTokenRepository.remove(userSecurityToken);
+
+    // 🗑️ Remove token usado
+    await this.usersSecurityTokenRepository.delete({ user: { id: user.id } });
 
     return { message: 'Email verified successfully' };
   }

@@ -1,5 +1,6 @@
 import { DatabaseModule } from '@common/modules/database/database.module';
 import { QueuesModule } from '@common/modules/queues/queues.module';
+import { SecurityModule } from '@common/modules/security/security.module';
 import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
 import { DataSource } from 'typeorm';
@@ -28,6 +29,7 @@ const usersProviders = [
 @Module({
   controllers: [UsersController],
   imports: [
+    SecurityModule,
     DatabaseModule,
     QueuesModule,
     BullModule.registerQueue({

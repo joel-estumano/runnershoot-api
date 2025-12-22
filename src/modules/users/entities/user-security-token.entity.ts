@@ -12,7 +12,7 @@ import { UserEntity } from './user.entity';
 @Entity('user-security-tokens')
 export class UserSecurityTokenEntity extends BaseEntity {
   @PrimaryGeneratedColumn()
-  id: number; // id INT AUTO_INCREMENT PRIMARY KEY
+  id: number;
 
   @OneToOne(() => UserEntity, (user) => user.securityToken, {
     onDelete: 'CASCADE',
@@ -22,7 +22,4 @@ export class UserSecurityTokenEntity extends BaseEntity {
 
   @Column({ type: 'varchar', length: 512, nullable: true, unique: true })
   token: string;
-
-  @Column({ type: 'timestamp', nullable: true })
-  validUntil: Date;
 }

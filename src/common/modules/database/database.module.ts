@@ -5,7 +5,7 @@ import { DataSource } from 'typeorm';
 import { MysqlConnectionOptions } from 'typeorm/driver/mysql/MysqlConnectionOptions';
 
 export const databaseConfig = registerAs(
-  'database.config',
+  'databaseConfig',
   (): MysqlConnectionOptions => {
     const host = process.env.DB_HOST;
     const port = Number(process.env.DB_PORT);
