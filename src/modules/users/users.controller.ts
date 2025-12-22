@@ -15,6 +15,7 @@ import {
 } from '@nestjs/swagger';
 
 import { CreateUserDto } from './dto/create-user.dto';
+import { EmailUserDto } from './dto/email-user.dto';
 import { OutputUserDto } from './dto/output-user.dto';
 import { UsersService } from './users.service';
 
@@ -69,10 +70,24 @@ export class UsersController {
     summary: 'Verify user email',
     description: 'This endpoint verifies a user email using a token.',
   })
-  userEmailVerification(
+  emailVerification(
     @Query('email') email: string,
     @Query('token') token: string,
   ) {
-    return this.usersService.userEmailVerification(email, token);
+    return this.usersService.emailVerification(email, token);
+  }
+
+  @Post('e-verification')
+  @ApiOperation({
+    summary: 'Request a new email verification',
+    description:
+      'This endpoint sends a new email verification link to the user based on the provided email address.',
+  })
+  @ApiOkResponse({
+    description:
+      'New email verification request completed successfully. A verification link will be sent.',
+  })
+  newEmailVerification(@Body() emailUserDto: EmailUserDto) {
+    return this.usersService.newEmailVerification(emailUserDto.email);
   }
 }

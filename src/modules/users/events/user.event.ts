@@ -8,11 +8,10 @@ import { UserEntity } from '../entities/user.entity';
 
 export type UserCreatedProps = Pick<
   UserEntity,
-  'id' | 'firstName' | 'lastName' | 'email'
+  'firstName' | 'lastName' | 'email'
 > & { emailVerificationLink: string };
 
 export class UserCreatedEvent implements UserCreatedProps {
-  id: number;
   firstName: string;
   lastName: string;
   email: string;
