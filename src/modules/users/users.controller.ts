@@ -64,7 +64,7 @@ export class UsersController {
     return this.usersService.remove(+id);
   }
 
-  @Get('email-verification')
+  @Get('e-verification')
   @ApiOperation({
     summary: 'Verify user email',
     description: 'This endpoint verifies a user email using a token.',

@@ -82,7 +82,7 @@ export class UsersService {
           firstName: user.firstName,
           lastName: user.lastName,
           email: user.email,
-          emailVerificationLink: `${this.appUrlConfigKey.url}/users/email-verification?email=${user.email}&token=${securityTokenEntity.token}`,
+          emailVerificationLink: `${this.appUrlConfigKey.url}/users/e-verification?email=${user.email}&token=${securityTokenEntity.token}`,
         });
         this.eventEmitter.emit('user.created', userCreatedEvent);
         break;
