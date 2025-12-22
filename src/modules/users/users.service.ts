@@ -3,6 +3,7 @@ import { SecurityService } from '@common/modules/security/security.service';
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import type { ConfigType } from '@nestjs/config';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { JsonWebTokenError, TokenExpiredError } from '@nestjs/jwt';
 import { plainToInstance } from 'class-transformer';
 import { Repository } from 'typeorm';
 
@@ -132,12 +133,29 @@ export class UsersService {
       throw new BadRequestException(`Security token of type ${type} not found`);
     }
 
-    const decoded = this.securityService.verifyToken(token);
+    try {
+      // ✅ Verifica validade do JWT
+      this.securityService.verifyToken(token);
+    } catch (err) {
+      // 🔎 Se expirado → remover
+      if (err instanceof TokenExpiredError) {
+        await this.usersSecurityTokenRepository.remove(userSecurityToken);
+        throw new BadRequestException(`Expired ${type} token`);
+      }
 
-    // Se inválido/expirado OU não corresponde ao que está no banco
-    if (!decoded || userSecurityToken.token !== token) {
-      await this.usersSecurityTokenRepository.remove(userSecurityToken);
-      throw new BadRequestException(`Invalid or expired ${type} token`);
+      // 🔎 Se assinatura inválida → remover
+      if (err instanceof JsonWebTokenError) {
+        await this.usersSecurityTokenRepository.remove(userSecurityToken);
+        throw new BadRequestException(`Invalid ${type} token`);
+      }
+
+      // Outros erros → apenas falhar
+      throw new BadRequestException(`Could not validate ${type} token`);
+    }
+
+    // 🔎 Se o token é válido mas não corresponde ao salvo → não remover
+    if (userSecurityToken.token !== token) {
+      throw new BadRequestException(`Invalid token`);
     }
   }
 

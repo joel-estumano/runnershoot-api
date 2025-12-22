@@ -1,6 +1,6 @@
 import { Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 
-export abstract class BaseEntity {
+export class BaseEntity {
   @Column({ nullable: false, default: true, select: false })
   active: boolean;
 
