@@ -175,27 +175,6 @@ export class UsersService {
     return { message: 'Email verified successfully' };
   }
 
-  async resetPassword(userId: number, token: string, newPassword: string) {
-    await this.validateAndCleanUserToken(
-      userId,
-      token,
-      EnumSecurityTokenType.PASSWORD_RESET,
-    );
-
-    const user = await this.usersRepository.findOne({ where: { id: userId } });
-    if (!user) throw new BadRequestException('User not found');
-
-    user.password = await this.securityService.hashPassword(newPassword);
-    await this.usersRepository.save(user);
-
-    await this.usersSecurityTokenRepository.delete({
-      user: { id: userId },
-      type: EnumSecurityTokenType.PASSWORD_RESET,
-    });
-
-    return { message: 'Password reset successfully' };
-  }
-
   async newEmailVerification(email: string) {
     const user = await this.usersRepository.findOne({ where: { email } });
     if (!user) throw new BadRequestException('User not found');
@@ -218,5 +197,26 @@ export class UsersService {
       message:
         'New email verification request completed successfully. A verification link will be sent.',
     };
+  }
+
+  async resetPassword(userId: number, token: string, newPassword: string) {
+    await this.validateAndCleanUserToken(
+      userId,
+      token,
+      EnumSecurityTokenType.PASSWORD_RESET,
+    );
+
+    const user = await this.usersRepository.findOne({ where: { id: userId } });
+    if (!user) throw new BadRequestException('User not found');
+
+    user.password = await this.securityService.hashPassword(newPassword);
+    await this.usersRepository.save(user);
+
+    await this.usersSecurityTokenRepository.delete({
+      user: { id: userId },
+      type: EnumSecurityTokenType.PASSWORD_RESET,
+    });
+
+    return { message: 'Password reset successfully' };
   }
 }

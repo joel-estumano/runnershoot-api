@@ -4,6 +4,7 @@ import { promisify } from 'node:util';
 import { Inject, Injectable } from '@nestjs/common';
 import type { ConfigType } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
+import { StringValue } from 'ms';
 
 import securityConfig from './configs/security.config';
 
@@ -18,9 +19,12 @@ export class SecurityService {
   ) {}
 
   /**
+   * Gera um hash seguro para a senha informada utilizando o algoritmo scrypt.
+   * O hash é composto por um salt aleatório concatenado com a chave derivada,
+   * ambos codificados em base64 e separados por dois pontos.
    *
-   * @param password
-   * @returns
+   * @param password senha em texto puro que será transformada em hash.
+   * @returns uma string contendo o salt e o hash da senha no formato "salt:hash".
    */
   async hashPassword(password: string): Promise<string> {
     const salt = randomBytes(16).toString('base64');
@@ -33,10 +37,14 @@ export class SecurityService {
   }
 
   /**
+   * Compara uma senha em texto puro com um hash previamente armazenado.
+   * O método utiliza o mesmo algoritmo scrypt e a mesma chave secreta para
+   * derivar a chave e verificar se corresponde ao hash fornecido.
    *
-   * @param plainPassword
-   * @param storedHash
-   * @returns
+   * @param plainPassword senha em texto puro informada pelo usuário.
+   * @param storedHash hash previamente armazenado no formato "salt:hash".
+   * @returns `true` se a senha informada corresponde ao hash armazenado,
+   *          caso contrário `false`.
    */
   async comparePassword(
     plainPassword: string,
@@ -59,8 +67,8 @@ export class SecurityService {
    *                  Se não for informado, será usado o valor padrão definido no JwtModule.
    * @returns token JWT assinado como string.
    */
-  generateToken(payload: object): string {
-    return this.jwtService.sign(payload);
+  generateToken(payload: object, expiresIn?: StringValue | number): string {
+    return this.jwtService.sign(payload, { expiresIn });
   }
 
   /**
