@@ -68,7 +68,7 @@ export class SecurityService {
    * @returns token JWT assinado como string.
    */
   generateToken(payload: object, expiresIn?: StringValue | number): string {
-    return this.jwtService.sign(payload, { expiresIn });
+    return this.jwtService.sign(payload, expiresIn ? { expiresIn } : undefined);
   }
 
   /**

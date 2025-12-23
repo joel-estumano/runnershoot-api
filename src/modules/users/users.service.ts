@@ -1,6 +1,11 @@
 import { appUrlConfig } from '@common/configs';
 import { SecurityService } from '@common/modules/security/security.service';
-import { BadRequestException, Inject, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import type { ConfigType } from '@nestjs/config';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { JsonWebTokenError, TokenExpiredError } from '@nestjs/jwt';
@@ -156,7 +161,8 @@ export class UsersService {
 
   async emailVerification(email: string, token: string) {
     const user = await this.usersRepository.findOne({ where: { email } });
-    if (!user) throw new BadRequestException('User not found');
+    if (!user)
+      throw new NotFoundException(`User with email address ${email} not found`);
 
     await this.validateAndCleanUserToken(
       user.id,
@@ -177,7 +183,8 @@ export class UsersService {
 
   async newEmailVerification(email: string) {
     const user = await this.usersRepository.findOne({ where: { email } });
-    if (!user) throw new BadRequestException('User not found');
+    if (!user)
+      throw new NotFoundException(`User with email address ${email} not found`);
 
     const tokenEntity = await this.createOrUpdateUserSecurityToken(
       user,
@@ -207,7 +214,7 @@ export class UsersService {
     );
 
     const user = await this.usersRepository.findOne({ where: { id: userId } });
-    if (!user) throw new BadRequestException('User not found');
+    if (!user) throw new NotFoundException('User not found');
 
     user.password = await this.securityService.hashPassword(newPassword);
     await this.usersRepository.save(user);
