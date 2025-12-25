@@ -9,6 +9,7 @@ import {
 import type { ConfigType } from '@nestjs/config';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { JsonWebTokenError, TokenExpiredError } from '@nestjs/jwt';
+import { InjectRepository } from '@nestjs/typeorm';
 import { plainToInstance } from 'class-transformer';
 import { Repository } from 'typeorm';
 
@@ -24,46 +25,63 @@ import { UserCreatedEvent } from './events/user.event';
 @Injectable()
 export class UsersService {
   constructor(
-    @Inject('USERS_REPOSITORY')
+    @InjectRepository(UserEntity)
     private readonly usersRepository: Repository<UserEntity>,
-    //
-    @Inject('USERS_SECURITY_TOKEN_REPOSITORY')
-    private readonly usersSecurityTokenRepository: Repository<UserSecurityTokenEntity>,
+    @InjectRepository(UserSecurityTokenEntity)
+    private readonly userSecurityTokenRepository: Repository<UserSecurityTokenEntity>,
     //
     @Inject(appUrlConfig.KEY)
     private readonly appUrlConfigKey: ConfigType<typeof appUrlConfig>,
-    //
     private readonly securityService: SecurityService,
     private readonly eventEmitter: EventEmitter2,
   ) {}
 
-  async create(createUserDto: CreateUserDto): Promise<OutputUserDto> {
-    const hashedPassword = await this.securityService.hashPassword(
-      createUserDto.password,
-    );
-
-    const create = this.usersRepository.create({
-      ...createUserDto,
-      password: hashedPassword,
+  private async createOrUpdateUserSecurityToken(
+    user: UserEntity,
+    type: EnumSecurityTokenType,
+  ): Promise<UserSecurityTokenEntity> {
+    const token = this.securityService.generateToken({
+      sub: user.id,
+      purpose: type,
     });
 
-    const saved = await this.usersRepository.save(create).then(async (user) => {
-      const tokenEntity = await this.createOrUpdateUserSecurityToken(
+    let userSecurityToken = await this.userSecurityTokenRepository.findOne({
+      where: { user: { id: user.id }, type },
+      relations: ['user'],
+    });
+
+    if (userSecurityToken) {
+      userSecurityToken.token = token;
+    } else {
+      userSecurityToken = this.userSecurityTokenRepository.create({
+        token,
         user,
-        EnumSecurityTokenType.EMAIL_VERIFICATION,
-      );
-
-      const userCreatedEvent = new UserCreatedEvent({
-        firstName: user.firstName,
-        lastName: user.lastName,
-        email: user.email,
-        emailVerificationLink: `${this.appUrlConfigKey.url}/users/e-verification?email=${user.email}&token=${tokenEntity.token}`,
+        type,
       });
+    }
 
-      this.eventEmitter.emit('user.created', userCreatedEvent);
+    return await this.userSecurityTokenRepository.save(userSecurityToken);
+  }
 
-      return user;
+  private async sendEmailForVerification(user: UserEntity): Promise<void> {
+    const tokenEntity = await this.createOrUpdateUserSecurityToken(
+      user,
+      EnumSecurityTokenType.EMAIL_VERIFICATION,
+    );
+    const userCreatedEvent = new UserCreatedEvent({
+      firstName: user.firstName,
+      lastName: user.lastName,
+      email: user.email,
+      emailVerificationLink: `${this.appUrlConfigKey.url}/users/e-verification?email=${user.email}&token=${tokenEntity.token}`,
     });
+    this.eventEmitter.emit('user.created', userCreatedEvent);
+  }
+
+  async create(createUserDto: CreateUserDto): Promise<OutputUserDto> {
+    const create = this.usersRepository.create(createUserDto);
+    const saved = await this.usersRepository.save(create);
+
+    void this.sendEmailForVerification(saved);
 
     return plainToInstance(OutputUserDto, saved, {
       excludeExtraneousValues: true,
@@ -90,41 +108,12 @@ export class UsersService {
     return await this.usersRepository.findOne({ where: { id } });
   }
 
-  private async createOrUpdateUserSecurityToken(
-    user: UserEntity,
-    type: EnumSecurityTokenType,
-  ): Promise<UserSecurityTokenEntity> {
-    const token = this.securityService.generateToken({
-      sub: user.id,
-      purpose: type,
-    });
-
-    // 🔍 Verifica se já existe token do mesmo tipo para o usuário
-    let userSecurityToken = await this.usersSecurityTokenRepository.findOne({
-      where: { user: { id: user.id }, type },
-      relations: ['user'],
-    });
-
-    if (userSecurityToken) {
-      userSecurityToken.token = token;
-    } else {
-      userSecurityToken = this.usersSecurityTokenRepository.create({
-        token,
-        user,
-        type,
-      });
-    }
-
-    // 💾 Salva (cria ou atualiza)
-    return await this.usersSecurityTokenRepository.save(userSecurityToken);
-  }
-
   private async validateAndCleanUserToken(
     userId: number,
     token: string,
     type: EnumSecurityTokenType,
   ): Promise<void> {
-    const userSecurityToken = await this.usersSecurityTokenRepository.findOne({
+    const userSecurityToken = await this.userSecurityTokenRepository.findOne({
       where: { user: { id: userId }, type },
       relations: ['user'],
     });
@@ -139,13 +128,13 @@ export class UsersService {
     } catch (err) {
       // 🔎 Se expirado → remover
       if (err instanceof TokenExpiredError) {
-        await this.usersSecurityTokenRepository.remove(userSecurityToken);
+        await this.userSecurityTokenRepository.remove(userSecurityToken);
         throw new BadRequestException('Expired token');
       }
 
       // 🔎 Se assinatura inválida → remover
       if (err instanceof JsonWebTokenError) {
-        await this.usersSecurityTokenRepository.remove(userSecurityToken);
+        await this.userSecurityTokenRepository.remove(userSecurityToken);
         throw new BadRequestException('Invalid token');
       }
 
@@ -159,7 +148,7 @@ export class UsersService {
     }
   }
 
-  async emailVerification(email: string, token: string) {
+  async verifyEmail(email: string, token: string) {
     const user = await this.usersRepository.findOne({ where: { email } });
     if (!user)
       throw new NotFoundException(`User with email address ${email} not found`);
@@ -173,7 +162,7 @@ export class UsersService {
     user.emailVerified = true;
     await this.usersRepository.save(user);
 
-    await this.usersSecurityTokenRepository.delete({
+    await this.userSecurityTokenRepository.delete({
       user: { id: user.id },
       type: EnumSecurityTokenType.EMAIL_VERIFICATION,
     });
@@ -181,24 +170,12 @@ export class UsersService {
     return { message: 'Email verified successfully' };
   }
 
-  async newEmailVerification(email: string) {
+  async sendNewEmailForVerification(email: string) {
     const user = await this.usersRepository.findOne({ where: { email } });
     if (!user)
       throw new NotFoundException(`User with email address ${email} not found`);
 
-    const tokenEntity = await this.createOrUpdateUserSecurityToken(
-      user,
-      EnumSecurityTokenType.EMAIL_VERIFICATION,
-    );
-
-    const userCreatedEvent = new UserCreatedEvent({
-      firstName: user.firstName,
-      lastName: user.lastName,
-      email: user.email,
-      emailVerificationLink: `${this.appUrlConfigKey.url}/users/e-verification?email=${user.email}&token=${tokenEntity.token}`,
-    });
-
-    this.eventEmitter.emit('user.created', userCreatedEvent);
+    void this.sendEmailForVerification(user);
 
     return {
       message:
@@ -219,7 +196,7 @@ export class UsersService {
     user.password = await this.securityService.hashPassword(newPassword);
     await this.usersRepository.save(user);
 
-    await this.usersSecurityTokenRepository.delete({
+    await this.userSecurityTokenRepository.delete({
       user: { id: userId },
       type: EnumSecurityTokenType.PASSWORD_RESET,
     });

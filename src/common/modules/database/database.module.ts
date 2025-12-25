@@ -1,7 +1,7 @@
 import { InternalServerErrorException, Module } from '@nestjs/common';
 import { ConfigModule, ConfigType, registerAs } from '@nestjs/config';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { join } from 'path';
-import { DataSource } from 'typeorm';
 import { MysqlConnectionOptions } from 'typeorm/driver/mysql/MysqlConnectionOptions';
 
 export const databaseConfig = registerAs(
@@ -32,19 +32,6 @@ export const databaseConfig = registerAs(
   },
 );
 
-const databaseProviders = [
-  {
-    provide: 'DATA_SOURCE',
-    inject: [databaseConfig.KEY],
-    useFactory: async (
-      databaseConfigKey: ConfigType<typeof databaseConfig>,
-    ) => {
-      const dataSource = new DataSource(databaseConfigKey);
-      return dataSource.initialize();
-    },
-  },
-];
-
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -52,8 +39,12 @@ const databaseProviders = [
       isGlobal: true,
       load: [databaseConfig],
     }),
+    TypeOrmModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [databaseConfig.KEY],
+      useFactory: (dbConfig: ConfigType<typeof databaseConfig>) => dbConfig,
+    }),
   ],
-  providers: [...databaseProviders],
-  exports: [...databaseProviders],
+  exports: [TypeOrmModule],
 })
 export class DatabaseModule {}

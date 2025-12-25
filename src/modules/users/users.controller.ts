@@ -74,7 +74,7 @@ export class UsersController {
     @Query('email') email: string,
     @Query('token') token: string,
   ) {
-    return this.usersService.emailVerification(email, token);
+    return this.usersService.verifyEmail(email, token);
   }
 
   @Post('e-verification')
@@ -88,6 +88,6 @@ export class UsersController {
       'New email verification request completed successfully. A verification link will be sent.',
   })
   newEmailVerification(@Body() emailUserDto: EmailUserDto) {
-    return this.usersService.newEmailVerification(emailUserDto.email);
+    return this.usersService.sendNewEmailForVerification(emailUserDto.email);
   }
 }

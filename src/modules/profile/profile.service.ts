@@ -1,4 +1,5 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
 import { CreateProfileDto } from './dto/create-profile.dto';
@@ -8,7 +9,7 @@ import { ProfileEntity } from './entities/profile.entity';
 @Injectable()
 export class ProfileService {
   constructor(
-    @Inject('PROFILES_REPOSITORY')
+    @InjectRepository(ProfileEntity)
     private readonly profilesRepository: Repository<ProfileEntity>,
   ) {}
 
