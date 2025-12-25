@@ -6,15 +6,15 @@ import type { ConfigType } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { StringValue } from 'ms';
 
-import securityConfig from './configs/security.config';
+import jwtConfig from './configs/jwt.config';
 
 @Injectable()
-export class SecurityService {
-  private scryptAsync = promisify(scrypt);
+export class TokenService {
+  private readonly scryptAsync = promisify(scrypt);
 
   constructor(
-    @Inject(securityConfig.KEY)
-    private readonly securityConfigKey: ConfigType<typeof securityConfig>,
+    @Inject(jwtConfig.KEY)
+    private readonly jwtConfigKey: ConfigType<typeof jwtConfig>,
     private readonly jwtService: JwtService,
   ) {}
 
@@ -37,10 +37,7 @@ export class SecurityService {
   async hashPassword(password: string): Promise<string> {
     const salt = randomBytes(16).toString('base64');
 
-    const peppered = createHmac(
-      'sha256',
-      this.securityConfigKey.secret as string,
-    )
+    const peppered = createHmac('sha256', this.jwtConfigKey.secret as string)
       .update(password)
       .digest('base64');
 
@@ -72,10 +69,7 @@ export class SecurityService {
   ): Promise<boolean> {
     const [salt, key] = storedHash.split(':');
 
-    const peppered = createHmac(
-      'sha256',
-      this.securityConfigKey.secret as string,
-    )
+    const peppered = createHmac('sha256', this.jwtConfigKey.secret as string)
       .update(plainPassword)
       .digest('base64');
 
@@ -85,14 +79,29 @@ export class SecurityService {
   }
 
   /**
-   * Gera um JSON Web Token (JWT) assinado com a chave secreta configurada.
+   * Cria um token JWT (JSON Web Token) assinado a partir de um payload.
    *
-   * @param payload objeto contendo os dados que serão incluídos no token (ex.: { sub: userId }).
-   * @param expiresIn tempo de expiração do token. Pode ser um número em segundos ou uma string no formato aceito pela lib `ms` (ex.: "1h", "2d").
-   *                  Se não for informado, será usado o valor padrão definido no JwtModule.
-   * @returns token JWT assinado como string.
+   * @typeParam T - Tipo genérico que representa o objeto de payload.
+   *
+   * @param payload - Objeto com os dados que serão incluídos no token.
+   *                  Exemplo: `{ userId: 123, role: 'admin' }`.
+   *
+   * @param expiresIn - (Opcional) Tempo de expiração do token.
+   *                    Pode ser:
+   *                    - `string` (ex.: `"1h"`, `"7d"`)
+   *                    - `number` em segundos (ex.: `3600`).
+   *
+   * @returns {string} - Token JWT assinado.
+   *
+   * @example
+   * // Token válido por 1 hora
+   * const token = sign({ userId: 42 }, "1h");
+   *
+   * @example
+   * // Token sem expiração definida
+   * const token = sign({ userId: 42 });
    */
-  generateToken(payload: object, expiresIn?: StringValue | number): string {
+  sign<T extends object>(payload: T, expiresIn?: StringValue | number): string {
     return this.jwtService.sign(payload, expiresIn ? { expiresIn } : undefined);
   }
 

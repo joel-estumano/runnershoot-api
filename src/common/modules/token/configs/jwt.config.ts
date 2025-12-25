@@ -3,7 +3,7 @@ import { registerAs } from '@nestjs/config';
 import { JwtSignOptions } from '@nestjs/jwt';
 import { StringValue } from 'ms';
 
-export default registerAs('securityConfig', (): JwtSignOptions => {
+export default registerAs('jwtConfig', (): JwtSignOptions => {
   const secret = process.env.JWT_SECRET;
   const expiresIn = process.env.JWT_EXPIRES_IN as StringValue | number;
 

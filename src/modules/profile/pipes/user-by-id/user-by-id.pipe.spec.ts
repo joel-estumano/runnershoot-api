@@ -1,21 +1,21 @@
+import { UsersService } from '@modules/users/users.service';
 import {
   ArgumentMetadata,
   BadRequestException,
   NotFoundException,
 } from '@nestjs/common';
-import { UsersService } from 'src/modules/users/users.service';
 
 import { UserByIdPipe } from './user-by-id.pipe';
 
 describe('UserByIdPipe', () => {
-  let usersService: Partial<UsersService>;
+  let usersService: UsersService;
   let pipe: UserByIdPipe;
 
   beforeEach(() => {
     usersService = {
       findById: jest.fn(),
-    };
-    pipe = new UserByIdPipe(usersService as UsersService);
+    } as unknown as UsersService;
+    pipe = new UserByIdPipe(usersService);
   });
 
   it('should be defined', () => {

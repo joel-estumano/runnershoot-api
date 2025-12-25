@@ -1,5 +1,5 @@
 import { BaseEntity } from '@common/shared/entities/base.entity';
-import { ProfileEntity } from 'src/modules/profile/entities/profile.entity';
+import { ProfileEntity } from '@modules/profile/entities/profile.entity';
 import {
   Column,
   Entity,

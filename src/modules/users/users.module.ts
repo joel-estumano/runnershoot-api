@@ -1,6 +1,6 @@
 import { DatabaseModule } from '@common/modules/database/database.module';
 import { QueuesModule } from '@common/modules/queues/queues.module';
-import { SecurityModule } from '@common/modules/security/security.module';
+import { TokenModule } from '@common/modules/token/token.module';
 import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -17,7 +17,7 @@ import { UsersService } from './users.service';
   imports: [
     DatabaseModule,
     TypeOrmModule.forFeature([UserEntity, UserSecurityTokenEntity]),
-    SecurityModule,
+    TokenModule,
     QueuesModule,
     BullModule.registerQueue({
       name: 'users',

@@ -1,3 +1,4 @@
+import { ApiPublicEndpoint } from '@modules/auth/decorators/api-public-endpoint.decorator';
 import { Controller, Get, Redirect } from '@nestjs/common';
 import { ApiExcludeEndpoint } from '@nestjs/swagger';
 
@@ -8,7 +9,7 @@ export class AppController {
   constructor(private readonly appService: AppService) {}
 
   @Get()
-  @ApiExcludeEndpoint()
+  @ApiPublicEndpoint()
   getHello(): string {
     return this.appService.getHello();
   }

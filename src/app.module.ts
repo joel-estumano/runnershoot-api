@@ -1,6 +1,9 @@
 import * as envConfigs from '@common/configs';
+import { AuthModule } from '@modules/auth/auth.module';
+import { JwtAuthGuard } from '@modules/auth/guards/jwt-auth/jwt-auth.guard';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { APP_GUARD } from '@nestjs/core';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 
 import { AppController } from './app.controller';
@@ -16,14 +19,20 @@ import { UsersModule } from './modules/users/users.module';
       load: Object.values(envConfigs),
     }),
     EventEmitterModule.forRoot({
-      // the delimiter used to segment namespaces
       delimiter: '.',
     }),
 
     UsersModule,
     ProfileModule,
+    AuthModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard,
+    },
+  ],
 })
 export class AppModule {}
