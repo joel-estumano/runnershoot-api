@@ -16,7 +16,6 @@ import { UsersModule } from './modules/users/users.module';
       load: Object.values(envConfigs),
     }),
     EventEmitterModule.forRoot({
-      // the delimiter used to segment namespaces
       delimiter: '.',
     }),
 

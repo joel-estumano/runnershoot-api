@@ -1,4 +1,4 @@
-import { SecurityService } from '@common/modules/security/security.service';
+import { AuthService } from '@common/modules/auth/auth.service';
 import {
   DataSource,
   EntitySubscriberInterface,
@@ -12,7 +12,7 @@ import { UserEntity } from '../user.entity';
 export class UserSubscriber implements EntitySubscriberInterface<UserEntity> {
   constructor(
     dataSource: DataSource,
-    private readonly securityService: SecurityService,
+    private readonly authService: AuthService,
   ) {
     dataSource.subscribers.push(this);
   }
@@ -23,7 +23,7 @@ export class UserSubscriber implements EntitySubscriberInterface<UserEntity> {
 
   async beforeInsert(event: InsertEvent<UserEntity>) {
     if (event.entity.password) {
-      event.entity.password = await this.securityService.hashPassword(
+      event.entity.password = await this.authService.hashPassword(
         event.entity.password,
       );
     }

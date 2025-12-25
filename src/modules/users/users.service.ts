@@ -1,5 +1,5 @@
 import { appUrlConfig } from '@common/configs';
-import { SecurityService } from '@common/modules/security/security.service';
+import { AuthService } from '@common/modules/auth/auth.service';
 import {
   BadRequestException,
   Inject,
@@ -32,7 +32,7 @@ export class UsersService {
     //
     @Inject(appUrlConfig.KEY)
     private readonly appUrlConfigKey: ConfigType<typeof appUrlConfig>,
-    private readonly securityService: SecurityService,
+    private readonly authService: AuthService,
     private readonly eventEmitter: EventEmitter2,
   ) {}
 
@@ -40,7 +40,7 @@ export class UsersService {
     user: UserEntity,
     type: EnumSecurityTokenType,
   ): Promise<UserSecurityTokenEntity> {
-    const token = this.securityService.generateToken({
+    const token = this.authService.generateToken({
       sub: user.id,
       purpose: type,
     });
@@ -124,7 +124,7 @@ export class UsersService {
 
     try {
       // ✅ Verifica validade do JWT
-      this.securityService.verifyToken(token);
+      this.authService.verifyToken(token);
     } catch (err) {
       // 🔎 Se expirado → remover
       if (err instanceof TokenExpiredError) {
@@ -193,7 +193,7 @@ export class UsersService {
     const user = await this.usersRepository.findOne({ where: { id: userId } });
     if (!user) throw new NotFoundException('User not found');
 
-    user.password = await this.securityService.hashPassword(newPassword);
+    user.password = await this.authService.hashPassword(newPassword);
     await this.usersRepository.save(user);
 
     await this.userSecurityTokenRepository.delete({

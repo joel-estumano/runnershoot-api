@@ -6,15 +6,15 @@ import type { ConfigType } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { StringValue } from 'ms';
 
-import securityConfig from './configs/security.config';
+import authConfig from './configs/auth.config';
 
 @Injectable()
-export class SecurityService {
+export class AuthService {
   private scryptAsync = promisify(scrypt);
 
   constructor(
-    @Inject(securityConfig.KEY)
-    private readonly securityConfigKey: ConfigType<typeof securityConfig>,
+    @Inject(authConfig.KEY)
+    private readonly authConfigKey: ConfigType<typeof authConfig>,
     private readonly jwtService: JwtService,
   ) {}
 
@@ -37,10 +37,7 @@ export class SecurityService {
   async hashPassword(password: string): Promise<string> {
     const salt = randomBytes(16).toString('base64');
 
-    const peppered = createHmac(
-      'sha256',
-      this.securityConfigKey.secret as string,
-    )
+    const peppered = createHmac('sha256', this.authConfigKey.secret as string)
       .update(password)
       .digest('base64');
 
@@ -72,10 +69,7 @@ export class SecurityService {
   ): Promise<boolean> {
     const [salt, key] = storedHash.split(':');
 
-    const peppered = createHmac(
-      'sha256',
-      this.securityConfigKey.secret as string,
-    )
+    const peppered = createHmac('sha256', this.authConfigKey.secret as string)
       .update(plainPassword)
       .digest('base64');
 
