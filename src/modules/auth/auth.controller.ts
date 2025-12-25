@@ -8,7 +8,12 @@ import {
   Res,
   UseGuards,
 } from '@nestjs/common';
-import { ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBody,
+  ApiExcludeController,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 import type { Response } from 'express';
 
 import { AuthService } from './auth.service';
@@ -18,6 +23,7 @@ import { LocalAuthGuard } from './guards/local/local-auth.guard';
 
 @Controller('auth')
 @ApiTags('Auth')
+@ApiExcludeController()
 export class AuthController {
   constructor(private authService: AuthService) {}
 
