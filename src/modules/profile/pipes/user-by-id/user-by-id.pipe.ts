@@ -1,3 +1,5 @@
+import { UserEntity } from '@modules/users/entities/user.entity';
+import { UsersService } from '@modules/users/users.service';
 import {
   ArgumentMetadata,
   BadRequestException,
@@ -5,8 +7,6 @@ import {
   NotFoundException,
   PipeTransform,
 } from '@nestjs/common';
-import { UserEntity } from 'src/modules/users/entities/user.entity';
-import { UsersService } from 'src/modules/users/users.service';
 
 @Injectable()
 export class UserByIdPipe implements PipeTransform {

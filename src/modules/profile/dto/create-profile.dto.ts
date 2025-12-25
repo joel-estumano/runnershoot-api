@@ -1,7 +1,7 @@
+import { UserEntity } from '@modules/users/entities/user.entity';
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import { IsDateString, IsEnum, IsNumber, IsOptional } from 'class-validator';
-import { UserEntity } from 'src/modules/users/entities/user.entity';
 
 import { EnumProfileGender, IProfile } from '../entities/profile.entity';
 

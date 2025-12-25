@@ -1,5 +1,5 @@
 import { appUrlConfig } from '@common/configs';
-import { AuthService } from '@common/modules/auth/auth.service';
+import { TokenService } from '@common/modules/token/token.service';
 import {
   BadRequestException,
   Inject,
@@ -32,7 +32,7 @@ export class UsersService {
     //
     @Inject(appUrlConfig.KEY)
     private readonly appUrlConfigKey: ConfigType<typeof appUrlConfig>,
-    private readonly authService: AuthService,
+    private readonly tokenService: TokenService,
     private readonly eventEmitter: EventEmitter2,
   ) {}
 
@@ -40,7 +40,7 @@ export class UsersService {
     user: UserEntity,
     type: EnumSecurityTokenType,
   ): Promise<UserSecurityTokenEntity> {
-    const token = this.authService.generateToken({
+    const token = this.tokenService.sign({
       sub: user.id,
       purpose: type,
     });
@@ -92,9 +92,16 @@ export class UsersService {
   //   return `This action returns all users`;
   // }
 
-  // findOne(id: number) {
-  //   return `This action returns a #${id} user`;
-  // }
+  async findOne<K extends keyof UserEntity>(
+    field: K,
+    value: UserEntity[K],
+    selects?: (keyof UserEntity)[],
+  ): Promise<UserEntity | null> {
+    return await this.usersRepository.findOne({
+      where: { [field]: value },
+      select: selects,
+    });
+  }
 
   // update(id: number, updateUserDto: UpdateUserDto) {
   //   return `This action updates a #${id} user`;
@@ -124,7 +131,7 @@ export class UsersService {
 
     try {
       // ✅ Verifica validade do JWT
-      this.authService.verifyToken(token);
+      this.tokenService.verifyToken(token);
     } catch (err) {
       // 🔎 Se expirado → remover
       if (err instanceof TokenExpiredError) {
@@ -193,7 +200,7 @@ export class UsersService {
     const user = await this.usersRepository.findOne({ where: { id: userId } });
     if (!user) throw new NotFoundException('User not found');
 
-    user.password = await this.authService.hashPassword(newPassword);
+    user.password = await this.tokenService.hashPassword(newPassword);
     await this.usersRepository.save(user);
 
     await this.userSecurityTokenRepository.delete({
