@@ -34,15 +34,33 @@ export class AuthController {
     @Request() req: { user: UserEntity },
     @Res({ passthrough: true }) res: Response,
   ) {
-    const result = this.authService.login(req.user);
+    const auth = this.authService.login(req.user);
 
-    res.cookie('access_token', result.access_token, {
+    res.cookie('access_token', auth.access_token, {
       httpOnly: true,
       secure: true,
       sameSite: 'none',
-      maxAge: result.maxAge,
+      maxAge: auth.maxAge,
     });
 
-    return result.user;
+    return auth.user;
+  }
+
+  @Post('logout')
+  @ApiPublicEndpoint()
+  @ApiOperation({
+    summary: 'User logout',
+    description:
+      'Endpoint to remove the authentication cookie (access_token) and invalidate access on the client..',
+  })
+  @HttpCode(HttpStatus.OK)
+  logout(@Res({ passthrough: true }) res: Response) {
+    res.clearCookie('access_token', {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'none',
+    });
+
+    return { message: 'Logout completed successfully!' };
   }
 }
