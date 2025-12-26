@@ -4,6 +4,7 @@ import {
   EntitySubscriberInterface,
   EventSubscriber,
   InsertEvent,
+  UpdateEvent,
 } from 'typeorm';
 
 import { UserEntity } from '../user.entity';
@@ -25,6 +26,17 @@ export class UserSubscriber implements EntitySubscriberInterface<UserEntity> {
     if (event.entity.password) {
       event.entity.password = await this.tokenService.hashPassword(
         event.entity.password,
+      );
+    }
+  }
+
+  async beforeUpdate(event: UpdateEvent<UserEntity>) {
+    if (
+      event.entity?.password &&
+      event.entity.password !== event.databaseEntity?.password
+    ) {
+      event.entity.password = await this.tokenService.hashPassword(
+        event.entity.password as string,
       );
     }
   }

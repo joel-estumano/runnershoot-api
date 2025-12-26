@@ -109,14 +109,10 @@ export class TokenService {
    * Verifica a validade de um JSON Web Token (JWT).
    *
    * @param token token JWT a ser validado.
-   * @returns objeto decodificado do token se válido; caso contrário, retorna `null` (token inválido ou expirado).
+   * @returns objeto decodificado do token se válido.
    */
-  verifyToken(token: string): object | null {
-    try {
-      return this.jwtService.verify(token);
-    } catch {
-      return null;
-    }
+  verifyToken(token: string): object {
+    return this.jwtService.verify(token);
   }
 
   /**

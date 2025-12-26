@@ -4,6 +4,7 @@ import {
   BadRequestException,
   Inject,
   Injectable,
+  InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
 import type { ConfigType } from '@nestjs/config';
@@ -15,12 +16,19 @@ import { Repository } from 'typeorm';
 
 import { CreateUserDto } from './dto/create-user.dto';
 import { OutputUserDto } from './dto/output-user.dto';
+import { ResetPasswordDto } from './dto/reset.password.dto';
 import { UserEntity } from './entities/user.entity';
 import {
   EnumSecurityTokenType,
   UserSecurityTokenEntity,
 } from './entities/user-security-token.entity';
 import { UserCreatedEvent } from './events/user.event';
+
+interface SignSecurityToken {
+  sub: number;
+  tenant: number;
+  purpose: EnumSecurityTokenType;
+}
 
 @Injectable()
 export class UsersService {
@@ -40,8 +48,9 @@ export class UsersService {
     user: UserEntity,
     type: EnumSecurityTokenType,
   ): Promise<UserSecurityTokenEntity> {
-    const token = this.tokenService.sign({
+    const token = this.tokenService.sign<SignSecurityToken>({
       sub: user.id,
+      tenant: user.tenantId,
       purpose: type,
     });
 
@@ -78,8 +87,8 @@ export class UsersService {
   }
 
   async create(createUserDto: CreateUserDto): Promise<OutputUserDto> {
-    const create = this.usersRepository.create(createUserDto);
-    const saved = await this.usersRepository.save(create);
+    const user = this.usersRepository.create(createUserDto);
+    const saved = await this.usersRepository.save(user); // O subscriber (beforeInsert) vai aplicar o hash automaticamente
 
     void this.sendEmailForVerification(saved);
 
@@ -100,6 +109,7 @@ export class UsersService {
     return await this.usersRepository.findOne({
       where: { [field]: value },
       select: selects,
+      relations: ['tenant'],
     });
   }
 
@@ -115,7 +125,7 @@ export class UsersService {
     return await this.usersRepository.findOne({ where: { id } });
   }
 
-  private async validateAndCleanUserToken(
+  private async verifyTokenByUserId(
     userId: number,
     token: string,
     type: EnumSecurityTokenType,
@@ -130,23 +140,21 @@ export class UsersService {
     }
 
     try {
-      // ✅ Verifica validade do JWT
       this.tokenService.verifyToken(token);
     } catch (err) {
-      // 🔎 Se expirado → remover
       if (err instanceof TokenExpiredError) {
         await this.userSecurityTokenRepository.remove(userSecurityToken);
         throw new BadRequestException('Expired token');
       }
 
-      // 🔎 Se assinatura inválida → remover
       if (err instanceof JsonWebTokenError) {
         await this.userSecurityTokenRepository.remove(userSecurityToken);
         throw new BadRequestException('Invalid token');
       }
 
-      // Outros erros → apenas falhar
-      throw new BadRequestException(`Could not validate token`);
+      throw new InternalServerErrorException(
+        'Unexpected error validating token',
+      );
     }
 
     // 🔎 Se o token é válido mas não corresponde ao salvo → não remover
@@ -160,7 +168,7 @@ export class UsersService {
     if (!user)
       throw new NotFoundException(`User with email address ${email} not found`);
 
-    await this.validateAndCleanUserToken(
+    await this.verifyTokenByUserId(
       user.id,
       token,
       EnumSecurityTokenType.EMAIL_VERIFICATION,
@@ -190,21 +198,26 @@ export class UsersService {
     };
   }
 
-  async resetPassword(userId: number, token: string, newPassword: string) {
-    await this.validateAndCleanUserToken(
-      userId,
-      token,
+  async resetPassword(resetPasswordDto: ResetPasswordDto) {
+    const user = await this.usersRepository.findOne({
+      where: { email: resetPasswordDto.email },
+    });
+    if (!user)
+      throw new NotFoundException(
+        `User with email address ${resetPasswordDto.email} not found`,
+      );
+
+    await this.verifyTokenByUserId(
+      user.id,
+      resetPasswordDto.token,
       EnumSecurityTokenType.PASSWORD_RESET,
     );
 
-    const user = await this.usersRepository.findOne({ where: { id: userId } });
-    if (!user) throw new NotFoundException('User not found');
-
-    user.password = await this.tokenService.hashPassword(newPassword);
-    await this.usersRepository.save(user);
+    user.password = resetPasswordDto.password;
+    await this.usersRepository.save(user); // O subscriber (beforeUpdate) vai aplicar o hash automaticamente
 
     await this.userSecurityTokenRepository.delete({
-      user: { id: userId },
+      user: { id: user.id },
       type: EnumSecurityTokenType.PASSWORD_RESET,
     });
 
