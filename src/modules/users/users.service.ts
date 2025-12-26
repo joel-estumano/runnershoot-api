@@ -15,6 +15,7 @@ import { Repository } from 'typeorm';
 
 import { CreateUserDto } from './dto/create-user.dto';
 import { OutputUserDto } from './dto/output-user.dto';
+import { ResetPasswordDto } from './dto/reset.password.dto';
 import { UserEntity } from './entities/user.entity';
 import {
   EnumSecurityTokenType,
@@ -190,21 +191,26 @@ export class UsersService {
     };
   }
 
-  async resetPassword(userId: number, token: string, newPassword: string) {
+  async resetPassword(resetPasswordDto: ResetPasswordDto) {
+    const user = await this.usersRepository.findOne({
+      where: { email: resetPasswordDto.email },
+    });
+    if (!user)
+      throw new NotFoundException(
+        `User with email address ${resetPasswordDto.email} not found`,
+      );
+
     await this.validateAndCleanUserToken(
-      userId,
-      token,
+      user.id,
+      resetPasswordDto.token,
       EnumSecurityTokenType.PASSWORD_RESET,
     );
 
-    const user = await this.usersRepository.findOne({ where: { id: userId } });
-    if (!user) throw new NotFoundException('User not found');
-
-    user.password = await this.tokenService.hashPassword(newPassword);
-    await this.usersRepository.save(user);
+    user.password = resetPasswordDto.password;
+    await this.usersRepository.save(user); // O subscriber (beforeUpdate) vai aplicar o hash automaticamente
 
     await this.userSecurityTokenRepository.delete({
-      user: { id: userId },
+      user: { id: user.id },
       type: EnumSecurityTokenType.PASSWORD_RESET,
     });
 

@@ -1,3 +1,4 @@
+import { ApiPublicEndpoint } from '@modules/auth/decorators/api-public-endpoint.decorator';
 import {
   Body,
   Controller,
@@ -17,6 +18,7 @@ import {
 import { CreateUserDto } from './dto/create-user.dto';
 import { EmailUserDto } from './dto/email-user.dto';
 import { OutputUserDto } from './dto/output-user.dto';
+import { ResetPasswordDto } from './dto/reset.password.dto';
 import { UsersService } from './users.service';
 
 @Controller('users')
@@ -25,6 +27,7 @@ export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Post()
+  @ApiPublicEndpoint()
   @ApiOperation({
     summary: 'Create a new user',
     description: 'This endpoint creates a new user.',
@@ -66,6 +69,7 @@ export class UsersController {
   }
 
   @Get('e-verification')
+  @ApiPublicEndpoint()
   @ApiOperation({
     summary: 'Verify user email',
     description: 'This endpoint verifies a user email using a token.',
@@ -78,6 +82,7 @@ export class UsersController {
   }
 
   @Post('e-verification')
+  @ApiPublicEndpoint()
   @ApiOperation({
     summary: 'Request a new email verification',
     description:
@@ -89,5 +94,20 @@ export class UsersController {
   })
   newEmailVerification(@Body() emailUserDto: EmailUserDto) {
     return this.usersService.sendNewEmailForVerification(emailUserDto.email);
+  }
+
+  @Post('reset-password')
+  @ApiPublicEndpoint()
+  @ApiOperation({
+    summary: 'Reset user password',
+    description:
+      'This endpoint resets the password of a user using a valid reset token.',
+  })
+  @ApiOkResponse({
+    description: 'Password reset successfully.',
+    type: ResetPasswordDto, // ou um DTO de resposta específico se preferir
+  })
+  resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
+    return this.usersService.resetPassword(resetPasswordDto);
   }
 }
