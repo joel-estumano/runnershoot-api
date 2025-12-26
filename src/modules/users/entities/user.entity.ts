@@ -1,8 +1,10 @@
 import { BaseEntity } from '@common/shared/entities/base.entity';
 import { ProfileEntity } from '@modules/profile/entities/profile.entity';
+import { TenantEntity } from '@modules/tenant/entities/tenant.entity';
 import {
   Column,
   Entity,
+  ManyToOne,
   OneToMany,
   OneToOne,
   PrimaryGeneratedColumn,
@@ -27,6 +29,11 @@ export interface IUser {
 
 @Entity('users')
 export class UserEntity extends BaseEntity implements IUser {
+  @ManyToOne(() => TenantEntity, (tenant) => tenant.users, {
+    onDelete: 'CASCADE',
+  })
+  tenant: TenantEntity;
+
   @OneToOne(() => ProfileEntity, (profile) => profile.user, {
     cascade: true,
   })
