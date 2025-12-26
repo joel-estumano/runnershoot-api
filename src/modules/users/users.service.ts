@@ -4,6 +4,7 @@ import {
   BadRequestException,
   Inject,
   Injectable,
+  InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
 import type { ConfigType } from '@nestjs/config';
@@ -79,8 +80,8 @@ export class UsersService {
   }
 
   async create(createUserDto: CreateUserDto): Promise<OutputUserDto> {
-    const create = this.usersRepository.create(createUserDto);
-    const saved = await this.usersRepository.save(create);
+    const user = this.usersRepository.create(createUserDto);
+    const saved = await this.usersRepository.save(user); // O subscriber (beforeInsert) vai aplicar o hash automaticamente
 
     void this.sendEmailForVerification(saved);
 
@@ -116,7 +117,7 @@ export class UsersService {
     return await this.usersRepository.findOne({ where: { id } });
   }
 
-  private async validateAndCleanUserToken(
+  private async verifyTokenByUserId(
     userId: number,
     token: string,
     type: EnumSecurityTokenType,
@@ -131,23 +132,21 @@ export class UsersService {
     }
 
     try {
-      // ✅ Verifica validade do JWT
       this.tokenService.verifyToken(token);
     } catch (err) {
-      // 🔎 Se expirado → remover
       if (err instanceof TokenExpiredError) {
         await this.userSecurityTokenRepository.remove(userSecurityToken);
         throw new BadRequestException('Expired token');
       }
 
-      // 🔎 Se assinatura inválida → remover
       if (err instanceof JsonWebTokenError) {
         await this.userSecurityTokenRepository.remove(userSecurityToken);
         throw new BadRequestException('Invalid token');
       }
 
-      // Outros erros → apenas falhar
-      throw new BadRequestException(`Could not validate token`);
+      throw new InternalServerErrorException(
+        'Unexpected error validating token',
+      );
     }
 
     // 🔎 Se o token é válido mas não corresponde ao salvo → não remover
@@ -161,7 +160,7 @@ export class UsersService {
     if (!user)
       throw new NotFoundException(`User with email address ${email} not found`);
 
-    await this.validateAndCleanUserToken(
+    await this.verifyTokenByUserId(
       user.id,
       token,
       EnumSecurityTokenType.EMAIL_VERIFICATION,
@@ -200,7 +199,7 @@ export class UsersService {
         `User with email address ${resetPasswordDto.email} not found`,
       );
 
-    await this.validateAndCleanUserToken(
+    await this.verifyTokenByUserId(
       user.id,
       resetPasswordDto.token,
       EnumSecurityTokenType.PASSWORD_RESET,
