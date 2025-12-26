@@ -24,6 +24,12 @@ import {
 } from './entities/user-security-token.entity';
 import { UserCreatedEvent } from './events/user.event';
 
+interface SignSecurityToken {
+  sub: number;
+  tenant: number;
+  purpose: EnumSecurityTokenType;
+}
+
 @Injectable()
 export class UsersService {
   constructor(
@@ -42,8 +48,9 @@ export class UsersService {
     user: UserEntity,
     type: EnumSecurityTokenType,
   ): Promise<UserSecurityTokenEntity> {
-    const token = this.tokenService.sign({
+    const token = this.tokenService.sign<SignSecurityToken>({
       sub: user.id,
+      tenant: user.tenantId,
       purpose: type,
     });
 
@@ -102,6 +109,7 @@ export class UsersService {
     return await this.usersRepository.findOne({
       where: { [field]: value },
       select: selects,
+      relations: ['tenant'],
     });
   }
 

@@ -1,6 +1,13 @@
 import { IsStringValid } from '@common/decorators/is-string.decorator';
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, Matches, MinLength } from 'class-validator';
+import { Type } from 'class-transformer';
+import {
+  IsEmail,
+  IsInt,
+  IsNotEmpty,
+  Matches,
+  MinLength,
+} from 'class-validator';
 
 import { IUser } from '../entities/user.entity';
 
@@ -38,4 +45,13 @@ export class CreateUserDto implements IUser {
     message: 'the password must contain letters and numbers',
   })
   password: string;
+
+  @ApiProperty({
+    description: 'Tenant ID (numeric, from MySQL AUTO_INCREMENT)',
+    example: 1,
+  })
+  @IsInt()
+  @Type(() => Number)
+  @IsNotEmpty()
+  tenantId: number;
 }

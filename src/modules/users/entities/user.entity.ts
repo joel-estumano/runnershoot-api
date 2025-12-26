@@ -4,6 +4,7 @@ import { TenantEntity } from '@modules/tenant/entities/tenant.entity';
 import {
   Column,
   Entity,
+  JoinColumn,
   ManyToOne,
   OneToMany,
   OneToOne,
@@ -29,9 +30,14 @@ export interface IUser {
 
 @Entity('users')
 export class UserEntity extends BaseEntity implements IUser {
+  @Column({ type: 'int' })
+  tenantId: number;
+
   @ManyToOne(() => TenantEntity, (tenant) => tenant.users, {
     onDelete: 'CASCADE',
+    onUpdate: 'CASCADE',
   })
+  @JoinColumn({ name: 'tenantId' })
   tenant: TenantEntity;
 
   @OneToOne(() => ProfileEntity, (profile) => profile.user, {

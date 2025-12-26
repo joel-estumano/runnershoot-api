@@ -1,6 +1,6 @@
 import { IsStringValid } from '@common/decorators/is-string.decorator';
 import { ApiProperty } from '@nestjs/swagger';
-import { MaxLength } from 'class-validator';
+import { IsUrl, MaxLength } from 'class-validator';
 
 export class CreateTenantDto {
   @ApiProperty({
@@ -17,5 +17,6 @@ export class CreateTenantDto {
   })
   @IsStringValid()
   @MaxLength(150)
+  @IsUrl()
   domain: string;
 }

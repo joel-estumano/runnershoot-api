@@ -1,10 +1,11 @@
 import jwtConfig from '@common/modules/token/configs/jwt.config';
-import { UserEntity } from '@modules/users/entities/user.entity';
 import { Inject, Injectable } from '@nestjs/common';
 import type { ConfigType } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import type { Request } from 'express';
 import { ExtractJwt, Strategy } from 'passport-jwt';
+
+import { SignPayload } from '../auth.service';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
@@ -24,12 +25,14 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  validate(payload: UserEntity & { sub: string }) {
+  validate(sign: SignPayload) {
     const returns = {
-      id: payload.sub,
-      email: payload.email,
-      role: payload.role,
+      id: sign.sub,
+      email: sign.email,
+      role: sign.role,
+      tenant: sign.tenant,
     };
+
     return returns;
   }
 }

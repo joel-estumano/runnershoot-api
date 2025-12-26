@@ -1,7 +1,14 @@
 import { TokenService } from '@common/modules/token/token.service';
-import { UserEntity } from '@modules/users/entities/user.entity';
+import { EnumUserRole, UserEntity } from '@modules/users/entities/user.entity';
 import { UsersService } from '@modules/users/users.service';
 import { Injectable } from '@nestjs/common';
+
+export interface SignPayload {
+  sub: number;
+  email: string;
+  role: EnumUserRole;
+  tenant: number;
+}
 
 @Injectable()
 export class AuthService {
@@ -15,6 +22,7 @@ export class AuthService {
       'id',
       'email',
       'role',
+      'tenant',
       'password',
     ]);
 
@@ -25,9 +33,14 @@ export class AuthService {
   }
 
   login(user: UserEntity) {
-    const payload = { sub: user.id, email: user.email, role: user.role };
+    const payload = {
+      sub: user.id,
+      email: user.email,
+      role: user.role,
+      tenant: user.tenant.id,
+    };
 
-    const access_token = this.tokenService.sign(payload);
+    const access_token = this.tokenService.sign<SignPayload>(payload);
 
     const decoded = this.tokenService.decodeToken(access_token) as {
       exp?: number;
