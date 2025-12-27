@@ -15,9 +15,17 @@ export class AppController {
   }
 
   @Get('docs')
+  @ApiPublicEndpoint()
   @ApiExcludeEndpoint()
   @Redirect('/swagger', 302)
   redirectToSwagger() {
     return;
   }
+
+  // @Get('roles')
+  // @UseGuards(RolesGuard)
+  // @Roles(EnumUserRole.ADMIN, EnumUserRole.USER)
+  // findAll() {
+  //   return 'Admins e usuários podem acessar!';
+  // }
 }

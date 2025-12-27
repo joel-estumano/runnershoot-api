@@ -207,11 +207,11 @@ export class UsersService {
         `User with email address ${resetPasswordDto.email} not found`,
       );
 
-    await this.verifyTokenByUserId(
+    /*  await this.verifyTokenByUserId(
       user.id,
       resetPasswordDto.token,
       EnumSecurityTokenType.PASSWORD_RESET,
-    );
+    ); */
 
     user.password = resetPasswordDto.password;
     await this.usersRepository.save(user); // O subscriber (beforeUpdate) vai aplicar o hash automaticamente
