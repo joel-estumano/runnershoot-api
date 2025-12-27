@@ -2,6 +2,7 @@ import { USER_ROLES_KEY } from '@modules/auth/decorators/user-roles.decorator';
 import { EnumUserRole } from '@modules/users/entities/user.entity';
 import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
+import { Observable } from 'rxjs';
 
 interface RequestWithUser extends Request {
   user: { role: EnumUserRole };
@@ -11,7 +12,9 @@ interface RequestWithUser extends Request {
 export class RolesGuard implements CanActivate {
   constructor(private reflector: Reflector) {}
 
-  canActivate(context: ExecutionContext): boolean {
+  canActivate(
+    context: ExecutionContext,
+  ): boolean | Promise<boolean> | Observable<boolean> {
     const requiredRoles = this.reflector.getAllAndOverride<EnumUserRole[]>(
       USER_ROLES_KEY,
       [context.getHandler(), context.getClass()],
