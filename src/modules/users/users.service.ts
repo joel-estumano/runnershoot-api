@@ -45,7 +45,7 @@ export class UsersService {
     private readonly eventEmitter: EventEmitter2,
   ) {}
 
-  private async createOrUpdateUserSecurityToken(args: {
+  private async createOrUpdateSecurityToken(args: {
     user: UserEntity;
     type: EnumSecurityTokenType;
     otp?: string;
@@ -79,7 +79,7 @@ export class UsersService {
   }
 
   private async sendEmailForVerification(user: UserEntity): Promise<void> {
-    const tokenEntity = await this.createOrUpdateUserSecurityToken({
+    const tokenEntity = await this.createOrUpdateSecurityToken({
       user: user,
       type: EnumSecurityTokenType.EMAIL_VERIFICATION,
     });
@@ -130,13 +130,14 @@ export class UsersService {
     return await this.usersRepository.findOne({ where: { id } });
   }
 
-  private async verifyTokenByUserId(
-    userId: number,
-    token: string,
-    type: EnumSecurityTokenType,
-  ): Promise<void> {
+  private async verifySecurityToken(args: {
+    userId: number;
+    token: string;
+    type: EnumSecurityTokenType;
+    otp?: string;
+  }): Promise<SignSecurityToken> {
     const userSecurityToken = await this.userSecurityTokenRepository.findOne({
-      where: { user: { id: userId }, type },
+      where: { user: { id: args.userId }, type: args.type },
       relations: ['user'],
     });
 
@@ -144,8 +145,9 @@ export class UsersService {
       throw new BadRequestException('Invalid token');
     }
 
+    let payload: SignSecurityToken;
     try {
-      this.tokenService.verifyToken(token);
+      payload = this.tokenService.verifyToken<SignSecurityToken>(args.token);
     } catch (err) {
       if (err instanceof TokenExpiredError) {
         await this.userSecurityTokenRepository.remove(userSecurityToken);
@@ -162,10 +164,15 @@ export class UsersService {
       );
     }
 
-    // 🔎 Se o token é válido mas não corresponde ao salvo → não remover
-    if (userSecurityToken.token !== token) {
+    if (userSecurityToken.token !== args.token) {
       throw new BadRequestException('Invalid token');
     }
+
+    if (args.otp && payload.otp !== args.otp) {
+      throw new BadRequestException('Invalid OTP code');
+    }
+
+    return payload;
   }
 
   async verifyEmail(email: string, token: string) {
@@ -173,11 +180,11 @@ export class UsersService {
     if (!user)
       throw new NotFoundException(`User with email address ${email} not found`);
 
-    await this.verifyTokenByUserId(
-      user.id,
-      token,
-      EnumSecurityTokenType.EMAIL_VERIFICATION,
-    );
+    await this.verifySecurityToken({
+      userId: user.id,
+      token: token,
+      type: EnumSecurityTokenType.EMAIL_VERIFICATION,
+    });
 
     user.emailVerified = true;
     await this.usersRepository.save(user);
@@ -212,11 +219,11 @@ export class UsersService {
         `User with email address ${resetPasswordDto.email} not found`,
       );
 
-    await this.verifyTokenByUserId(
-      user.id,
-      resetPasswordDto.token,
-      EnumSecurityTokenType.PASSWORD_RESET,
-    );
+    await this.verifySecurityToken({
+      userId: user.id,
+      token: resetPasswordDto.token,
+      type: EnumSecurityTokenType.PASSWORD_RESET,
+    });
 
     user.password = resetPasswordDto.password;
     await this.usersRepository.save(user); // O subscriber (beforeUpdate) vai aplicar o hash automaticamente

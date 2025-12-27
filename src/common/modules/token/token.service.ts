@@ -111,8 +111,8 @@ export class TokenService {
    * @param token token JWT a ser validado.
    * @returns objeto decodificado do token se válido.
    */
-  verifyToken(token: string): object {
-    return this.jwtService.verify(token);
+  verifyToken<T extends object = any>(token: string): T {
+    return this.jwtService.verify<T>(token);
   }
 
   /**
