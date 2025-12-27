@@ -26,7 +26,6 @@ import { UserCreatedEvent } from './events/user.event';
 
 interface SignSecurityToken {
   sub: number;
-  tenant: number;
   purpose: EnumSecurityTokenType;
 }
 
@@ -50,7 +49,6 @@ export class UsersService {
   ): Promise<UserSecurityTokenEntity> {
     const token = this.tokenService.sign<SignSecurityToken>({
       sub: user.id,
-      tenant: user.tenantId,
       purpose: type,
     });
 
@@ -109,7 +107,6 @@ export class UsersService {
     return await this.usersRepository.findOne({
       where: { [field]: value },
       select: selects,
-      relations: ['tenant'],
     });
   }
 

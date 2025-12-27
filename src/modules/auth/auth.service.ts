@@ -7,7 +7,6 @@ export interface SignPayload {
   sub: number;
   email: string;
   role: EnumUserRole;
-  tenant: number;
 }
 
 @Injectable()
@@ -22,7 +21,6 @@ export class AuthService {
       'id',
       'email',
       'role',
-      'tenant',
       'password',
     ]);
 
@@ -37,7 +35,6 @@ export class AuthService {
       sub: user.id,
       email: user.email,
       role: user.role,
-      tenant: user.tenant.id,
     };
 
     const access_token = this.tokenService.sign<SignPayload>(payload);
