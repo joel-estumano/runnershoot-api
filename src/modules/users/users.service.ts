@@ -12,6 +12,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { JsonWebTokenError, TokenExpiredError } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { plainToInstance } from 'class-transformer';
+import { StringValue } from 'ms';
 import { Repository } from 'typeorm';
 
 import { CreateUserDto } from './dto/create-user.dto';
@@ -27,6 +28,7 @@ import { UserCreatedEvent } from './events/user.event';
 interface SignSecurityToken {
   sub: number;
   purpose: EnumSecurityTokenType;
+  otp?: string;
 }
 
 @Injectable()
@@ -43,17 +45,23 @@ export class UsersService {
     private readonly eventEmitter: EventEmitter2,
   ) {}
 
-  private async createOrUpdateUserSecurityToken(
-    user: UserEntity,
-    type: EnumSecurityTokenType,
-  ): Promise<UserSecurityTokenEntity> {
-    const token = this.tokenService.sign<SignSecurityToken>({
-      sub: user.id,
-      purpose: type,
-    });
+  private async createOrUpdateUserSecurityToken(args: {
+    user: UserEntity;
+    type: EnumSecurityTokenType;
+    otp?: string;
+    expiresIn?: number | StringValue | undefined;
+  }): Promise<UserSecurityTokenEntity> {
+    const token = this.tokenService.sign<SignSecurityToken>(
+      {
+        sub: args.user.id,
+        purpose: args.type,
+        otp: args.otp,
+      },
+      args.expiresIn,
+    );
 
     let userSecurityToken = await this.userSecurityTokenRepository.findOne({
-      where: { user: { id: user.id }, type },
+      where: { user: { id: args.user.id }, type: args.type },
       relations: ['user'],
     });
 
@@ -62,8 +70,8 @@ export class UsersService {
     } else {
       userSecurityToken = this.userSecurityTokenRepository.create({
         token,
-        user,
-        type,
+        user: args.user,
+        type: args.type,
       });
     }
 
@@ -71,10 +79,10 @@ export class UsersService {
   }
 
   private async sendEmailForVerification(user: UserEntity): Promise<void> {
-    const tokenEntity = await this.createOrUpdateUserSecurityToken(
-      user,
-      EnumSecurityTokenType.EMAIL_VERIFICATION,
-    );
+    const tokenEntity = await this.createOrUpdateUserSecurityToken({
+      user: user,
+      type: EnumSecurityTokenType.EMAIL_VERIFICATION,
+    });
     const userCreatedEvent = new UserCreatedEvent({
       firstName: user.firstName,
       lastName: user.lastName,
@@ -204,11 +212,11 @@ export class UsersService {
         `User with email address ${resetPasswordDto.email} not found`,
       );
 
-    /*  await this.verifyTokenByUserId(
+    await this.verifyTokenByUserId(
       user.id,
       resetPasswordDto.token,
       EnumSecurityTokenType.PASSWORD_RESET,
-    ); */
+    );
 
     user.password = resetPasswordDto.password;
     await this.usersRepository.save(user); // O subscriber (beforeUpdate) vai aplicar o hash automaticamente
