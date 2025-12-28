@@ -1,6 +1,6 @@
 import { ApiPublicEndpoint } from '@modules/auth/decorators/api-public-endpoint.decorator';
 import { Roles } from '@modules/auth/decorators/user-roles.decorator';
-import { OwnershipGuard } from '@modules/auth/guards/ownership/ownership/ownership.guard';
+import { OwnershipGuard } from '@modules/auth/guards/ownership/ownership.guard';
 import { RolesGuard } from '@modules/auth/guards/roles/roles.guard';
 import {
   Body,
