@@ -29,7 +29,7 @@ export class UserByIdPipe implements PipeTransform {
 
     const user = await this.usersService.findOne('id', userId);
     if (!user) {
-      throw new NotFoundException(`User with ID ${userId} was not found.`);
+      throw new NotFoundException(`User with ID ${userId} was not found`);
     }
 
     return user;

@@ -1,4 +1,7 @@
 import { ApiPublicEndpoint } from '@modules/auth/decorators/api-public-endpoint.decorator';
+import { Roles } from '@modules/auth/decorators/user-roles.decorator';
+import { OwnershipGuard } from '@modules/auth/guards/ownership/ownership/ownership.guard';
+import { RolesGuard } from '@modules/auth/guards/roles/roles.guard';
 import {
   Body,
   Controller,
@@ -8,6 +11,7 @@ import {
   Post,
   Query,
   Res,
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiCreatedResponse,
@@ -21,6 +25,7 @@ import { DeleteResult } from 'typeorm';
 import { CreateUserDto } from './dto/create-user.dto';
 import { EmailUserDto } from './dto/email-user.dto';
 import { OutputUserDto } from './dto/output-user.dto';
+import { EnumUserRole } from './entities/user.entity';
 import { UsersService } from './users.service';
 
 @Controller('users')
@@ -58,6 +63,8 @@ export class UsersController {
   // }
 
   @Delete(':id')
+  @UseGuards(RolesGuard, OwnershipGuard)
+  @Roles(EnumUserRole.ADMIN, EnumUserRole.USER)
   @ApiOperation({
     summary: 'Delete a user',
     description: 'This endpoint deletes a user by ID.',
@@ -75,6 +82,7 @@ export class UsersController {
     summary: 'Verify user email',
     description: 'This endpoint verifies a user email using a token.',
   })
+  @ApiOkResponse()
   async verifyEmail(
     @Query('email') email: string,
     @Query('token') token: string,

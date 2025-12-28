@@ -13,23 +13,19 @@ import { UserSecurityTokenEntity } from './user-security-token.entity';
 /**
  * EnumUserRole define os diferentes papéis que um usuário pode assumir no sistema.
  *
+ * - `ADMIN`: Representa o administrador do sistema.
+ *   → Pode gerenciar todo o sistema, incluindo usuários, organizadores e eventos.
+ *
  * - `USER`: Representa o participante comum.
  *   → Pode visualizar eventos disponíveis e se inscrever em corridas ou maratonas.
  *
  * - `ORGANIZER`: Representa o organizador de eventos.
  *   → Pode criar novos eventos, editar detalhes e gerenciar inscrições dos participantes.
- *
- * - `ADMIN`: Representa o administrador do sistema.
- *   → Pode gerenciar todo o sistema, incluindo usuários, organizadores e eventos.
- *
- * - `SYSTEM`: Papel reservado para processos internos do sistema.
- *   → Usado para operações automatizadas, integrações ou tarefas técnicas que não envolvem interação humana direta.
  */
 export enum EnumUserRole {
-  SYSTEM = 'SYSTEM',
   ADMIN = 'ADMIN',
-  ORGANIZER = 'ORGANIZER',
   USER = 'USER',
+  ORGANIZER = 'ORGANIZER',
 }
 
 export interface IUser {

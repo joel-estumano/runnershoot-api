@@ -36,10 +36,9 @@ export interface SignPayload {
    * - Define o nível de acesso e permissões disponíveis.
    *
    * Valores possíveis:
+   * - `ADMIN`: Administrador, com acesso total ao sistema.
    * - `USER`: Participante comum, pode visualizar eventos e se inscrever.
    * - `ORGANIZER`: Organizador de eventos, pode criar e gerenciar inscrições.
-   * - `ADMIN`: Administrador, com acesso total ao sistema.
-   * - `SYSTEM`: Papel reservado para processos internos e automações.
    */
   role: EnumUserRole;
 }

@@ -35,7 +35,7 @@ describe('UserByIdPipe', () => {
   });
 
   it('should throw NotFoundException if user is not found', async () => {
-    (usersService.findById as jest.Mock).mockResolvedValue(null);
+    (usersService.findOne as jest.Mock).mockResolvedValue(null);
 
     await expect(
       pipe.transform('1', { data: 'id' } as ArgumentMetadata),

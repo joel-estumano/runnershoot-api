@@ -1,4 +1,7 @@
-import { Body, Controller, Param, Post } from '@nestjs/common';
+import { Roles } from '@modules/auth/decorators/user-roles.decorator';
+import { OwnershipGuard } from '@modules/auth/guards/ownership/ownership/ownership.guard';
+import { RolesGuard } from '@modules/auth/guards/roles/roles.guard';
+import { Body, Controller, Param, Post, UseGuards } from '@nestjs/common';
 import {
   ApiCreatedResponse,
   ApiOperation,
@@ -6,16 +9,18 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 
-import { UserEntity } from '../users/entities/user.entity';
+import { EnumUserRole, UserEntity } from '../users/entities/user.entity';
 import { CreateProfileDto } from './dto/create-profile.dto';
 import { OutputProfileDto } from './dto/output-profile.dto';
 import { UserByIdPipe } from './pipes/user-by-id/user-by-id.pipe';
-import { ProfileService } from './profile.service';
+import { ProfilesService } from './profiles.service';
 
-@Controller('profile')
+@Controller('profiles')
 @ApiTags('Profiles')
-export class ProfileController {
-  constructor(private readonly profileService: ProfileService) {}
+@UseGuards(RolesGuard, OwnershipGuard)
+@Roles(EnumUserRole.ADMIN, EnumUserRole.USER)
+export class ProfilesController {
+  constructor(private readonly profilesService: ProfilesService) {}
 
   @Post(':userId')
   @ApiOperation({
@@ -31,7 +36,7 @@ export class ProfileController {
     @Param('userId', UserByIdPipe) user: UserEntity,
     @Body() createProfileDto: CreateProfileDto,
   ) {
-    return this.profileService.create({ ...createProfileDto, user });
+    return this.profilesService.create({ ...createProfileDto, user });
   }
 
   // @Get()
