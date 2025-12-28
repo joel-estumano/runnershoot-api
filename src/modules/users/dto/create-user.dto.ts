@@ -1,17 +1,25 @@
 import { IsStringValid } from '@common/decorators/is-string.decorator';
 import { ApiProperty } from '@nestjs/swagger';
-import { Type } from 'class-transformer';
-import {
-  IsEmail,
-  IsInt,
-  IsNotEmpty,
-  Matches,
-  MinLength,
-} from 'class-validator';
+import { Transform } from 'class-transformer';
+import { IsEmail, IsIn, IsOptional, Matches, MinLength } from 'class-validator';
 
-import { IUser } from '../entities/user.entity';
+import { EnumUserRole, IUser } from '../entities/user.entity';
 
 export class CreateUserDto implements IUser {
+  @ApiProperty({
+    description: 'Role of the user',
+    example: EnumUserRole.USER,
+    enum: [EnumUserRole.USER, EnumUserRole.ORGANIZER],
+    enumName: 'EnumUserRole',
+    required: false,
+  })
+  @IsOptional()
+  @IsIn([EnumUserRole.USER, EnumUserRole.ORGANIZER])
+  @Transform(({ value }: { value: string }) =>
+    value ? value.toUpperCase() : value,
+  )
+  role: EnumUserRole;
+
   @ApiProperty({
     description: 'First name must be a non-empty string',
     example: 'Jane',
@@ -45,13 +53,4 @@ export class CreateUserDto implements IUser {
     message: 'the password must contain letters and numbers',
   })
   password: string;
-
-  @ApiProperty({
-    description: 'Tenant ID (numeric, from MySQL AUTO_INCREMENT)',
-    example: 1,
-  })
-  @IsInt()
-  @Type(() => Number)
-  @IsNotEmpty()
-  tenantId: number;
 }

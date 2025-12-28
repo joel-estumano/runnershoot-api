@@ -1,13 +1,13 @@
 import { BaseEntity } from '@common/shared/entities/base.entity';
 import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 
+import { UserEntity } from './user.entity';
+
 export enum EnumSecurityTokenType {
   EMAIL_VERIFICATION = 'EMAIL_VERIFICATION',
   PASSWORD_RESET = 'PASSWORD_RESET',
   TWO_FACTOR_AUTH = '2FA',
 }
-
-import { UserEntity } from './user.entity';
 
 @Entity('user-security-tokens')
 export class UserSecurityTokenEntity extends BaseEntity {

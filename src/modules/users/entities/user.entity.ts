@@ -1,11 +1,8 @@
 import { BaseEntity } from '@common/shared/entities/base.entity';
 import { ProfileEntity } from '@modules/profile/entities/profile.entity';
-import { TenantEntity } from '@modules/tenant/entities/tenant.entity';
 import {
   Column,
   Entity,
-  JoinColumn,
-  ManyToOne,
   OneToMany,
   OneToOne,
   PrimaryGeneratedColumn,
@@ -13,10 +10,26 @@ import {
 
 import { UserSecurityTokenEntity } from './user-security-token.entity';
 
+/**
+ * EnumUserRole define os diferentes papéis que um usuário pode assumir no sistema.
+ *
+ * - `USER`: Representa o participante comum.
+ *   → Pode visualizar eventos disponíveis e se inscrever em corridas ou maratonas.
+ *
+ * - `ORGANIZER`: Representa o organizador de eventos.
+ *   → Pode criar novos eventos, editar detalhes e gerenciar inscrições dos participantes.
+ *
+ * - `ADMIN`: Representa o administrador do sistema.
+ *   → Pode gerenciar todo o sistema, incluindo usuários, organizadores e eventos.
+ *
+ * - `SYSTEM`: Papel reservado para processos internos do sistema.
+ *   → Usado para operações automatizadas, integrações ou tarefas técnicas que não envolvem interação humana direta.
+ */
 export enum EnumUserRole {
-  ADMIN = 'ADMIN',
-  USER = 'USER',
   SYSTEM = 'SYSTEM',
+  ADMIN = 'ADMIN',
+  ORGANIZER = 'ORGANIZER',
+  USER = 'USER',
 }
 
 export interface IUser {
@@ -30,16 +43,6 @@ export interface IUser {
 
 @Entity('users')
 export class UserEntity extends BaseEntity implements IUser {
-  @Column({ type: 'int' })
-  tenantId: number;
-
-  @ManyToOne(() => TenantEntity, (tenant) => tenant.users, {
-    onDelete: 'CASCADE',
-    onUpdate: 'CASCADE',
-  })
-  @JoinColumn({ name: 'tenantId' })
-  tenant: TenantEntity;
-
   @OneToOne(() => ProfileEntity, (profile) => profile.user, {
     cascade: true,
   })

@@ -1,7 +1,6 @@
 import * as envConfigs from '@common/configs';
 import { AuthModule } from '@modules/auth/auth.module';
 import { JwtAuthGuard } from '@modules/auth/guards/jwt-auth/jwt-auth.guard';
-import { TenantsModule } from '@modules/tenant/tenants.module';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
@@ -23,7 +22,6 @@ import { UsersModule } from './modules/users/users.module';
       delimiter: '.',
     }),
 
-    TenantsModule,
     UsersModule,
     ProfileModule,
     AuthModule,
