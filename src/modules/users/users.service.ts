@@ -18,11 +18,15 @@ import { DeleteResult, Repository } from 'typeorm';
 import { CreateUserDto } from './dto/create-user.dto';
 import { OutputUserDto } from './dto/output-user.dto';
 import { UserEntity } from './entities/user.entity';
-import { UserSecurityTokenEntity } from './entities/user-security-token.entity';
+import {
+  EnumSecurityTokenType,
+  UserSecurityTokenEntity,
+} from './entities/user-security-token.entity';
 import { UserCreatedEvent } from './events/user.event';
 
 interface SignSecurityToken {
   sub: number;
+  type: EnumSecurityTokenType;
 }
 
 @Injectable()
@@ -39,17 +43,18 @@ export class UsersService {
     private readonly eventEmitter: EventEmitter2,
   ) {}
 
-  private async createOrUpdateUserSecurityToken(
-    user: UserEntity,
-    expiresIn?: number | StringValue,
-  ): Promise<UserSecurityTokenEntity> {
+  private async createOrUpdateUserSecurityToken(args: {
+    user: UserEntity;
+    type: EnumSecurityTokenType;
+    expiresIn?: number | StringValue | undefined;
+  }): Promise<UserSecurityTokenEntity> {
     const token = this.tokenService.sign<SignSecurityToken>(
-      { sub: user.id },
-      expiresIn,
+      { sub: args.user.id, type: args.type },
+      args.expiresIn,
     );
 
     let userSecurityToken = await this.userSecurityTokenRepository.findOne({
-      where: { user: { id: user.id } },
+      where: { user: { id: args.user.id }, type: args.type },
       relations: ['user'],
     });
 
@@ -57,8 +62,8 @@ export class UsersService {
       userSecurityToken.token = token;
     } else {
       userSecurityToken = this.userSecurityTokenRepository.create({
+        user: args.user,
         token,
-        user: user,
       });
     }
 
@@ -68,9 +73,10 @@ export class UsersService {
   private async verifyUserSecurityToken(
     user: UserEntity,
     token: string,
+    type: EnumSecurityTokenType,
   ): Promise<SignSecurityToken> {
     const userSecurityToken = await this.userSecurityTokenRepository.findOne({
-      where: { user: { id: user.id } },
+      where: { user: { id: user.id }, type: type },
       relations: ['user'],
     });
 
@@ -110,7 +116,11 @@ export class UsersService {
    * @param user
    */
   private async sendEmailForVerification(user: UserEntity): Promise<void> {
-    const tokenEntity = await this.createOrUpdateUserSecurityToken(user, '72h');
+    const tokenEntity = await this.createOrUpdateUserSecurityToken({
+      user,
+      type: EnumSecurityTokenType.EMAIL_VERIFICATION,
+      expiresIn: '72h',
+    });
     const userCreatedEvent = new UserCreatedEvent({
       firstName: user.firstName,
       lastName: user.lastName,
@@ -146,19 +156,26 @@ export class UsersService {
     return await this.usersRepository.delete(id);
   }
 
-  async verifyEmail(email: string, token: string): Promise<void> {
+  async verifyEmail(email: string, token: string): Promise<UserEntity> {
     const user = await this.findOne('email', email);
     if (!user)
       throw new NotFoundException(`User with email address ${email} not found`);
 
-    await this.verifyUserSecurityToken(user, token);
+    await this.verifyUserSecurityToken(
+      user,
+      token,
+      EnumSecurityTokenType.EMAIL_VERIFICATION,
+    );
 
     user.emailVerified = true;
     await this.usersRepository.save(user);
 
     await this.userSecurityTokenRepository.delete({
       user: { id: user.id },
+      type: EnumSecurityTokenType.EMAIL_VERIFICATION,
     });
+
+    return user;
   }
 
   async reSendEmailForVerification(email: string): Promise<void> {

@@ -3,6 +3,12 @@ import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 
 import { UserEntity } from './user.entity';
 
+export enum EnumSecurityTokenType {
+  EMAIL_VERIFICATION = 'EMAIL_VERIFICATION',
+  PASSWORD_RESET = 'PASSWORD_RESET',
+  TWO_FACTOR_AUTH = '2FA',
+}
+
 @Entity('user-security-tokens')
 export class UserSecurityTokenEntity extends BaseEntity {
   @PrimaryGeneratedColumn()
@@ -15,4 +21,11 @@ export class UserSecurityTokenEntity extends BaseEntity {
 
   @Column({ type: 'varchar', length: 512, nullable: true, unique: true })
   token: string;
+
+  @Column({
+    type: 'enum',
+    enum: EnumSecurityTokenType,
+    nullable: false,
+  })
+  type: EnumSecurityTokenType;
 }

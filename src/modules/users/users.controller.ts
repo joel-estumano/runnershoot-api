@@ -80,15 +80,10 @@ export class UsersController {
     @Query('token') token: string,
     @Res() res: Response,
   ): Promise<void> {
-    await this.usersService.verifyEmail(email, token);
-    res.send(`
-      <html>
-        <head><title>Email Verified</title></head>
-        <body>
-          <h1>Email verified successfully ✅</h1>
-        </body>
-      </html>
-    `);
+    const user = await this.usersService.verifyEmail(email, token);
+    return res.render('email-verified', {
+      userName: `${user.firstName} ${user.lastName}`,
+    });
   }
 
   @Post('e-verification')
