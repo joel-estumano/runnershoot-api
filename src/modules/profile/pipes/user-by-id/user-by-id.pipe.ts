@@ -19,17 +19,17 @@ export class UserByIdPipe implements PipeTransform {
       );
     }
 
-    const parsedValue = Number(value);
+    const userId = Number(value);
 
-    if (isNaN(parsedValue) || !Number.isInteger(parsedValue)) {
+    if (isNaN(userId) || !Number.isInteger(userId)) {
       throw new BadRequestException(
         `The ${metadata.data} parameter must be a valid integer.`,
       );
     }
 
-    const user = await this.usersService.findById(parsedValue);
+    const user = await this.usersService.findOne('id', userId);
     if (!user) {
-      throw new NotFoundException(`User with ID ${parsedValue} was not found.`);
+      throw new NotFoundException(`User with ID ${userId} was not found.`);
     }
 
     return user;

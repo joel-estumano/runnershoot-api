@@ -13,22 +13,16 @@ import { JsonWebTokenError, TokenExpiredError } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { plainToInstance } from 'class-transformer';
 import { StringValue } from 'ms';
-import { Repository } from 'typeorm';
+import { DeleteResult, Repository } from 'typeorm';
 
 import { CreateUserDto } from './dto/create-user.dto';
 import { OutputUserDto } from './dto/output-user.dto';
-import { ResetPasswordDto } from './dto/reset.password.dto';
 import { UserEntity } from './entities/user.entity';
-import {
-  EnumSecurityTokenType,
-  UserSecurityTokenEntity,
-} from './entities/user-security-token.entity';
+import { UserSecurityTokenEntity } from './entities/user-security-token.entity';
 import { UserCreatedEvent } from './events/user.event';
 
 interface SignSecurityToken {
   sub: number;
-  purpose: EnumSecurityTokenType;
-  otp?: string;
 }
 
 @Injectable()
@@ -45,23 +39,17 @@ export class UsersService {
     private readonly eventEmitter: EventEmitter2,
   ) {}
 
-  private async createOrUpdateSecurityToken(args: {
-    user: UserEntity;
-    type: EnumSecurityTokenType;
-    otp?: string;
-    expiresIn?: number | StringValue | undefined;
-  }): Promise<UserSecurityTokenEntity> {
+  private async createOrUpdateUserSecurityToken(
+    user: UserEntity,
+    expiresIn?: number | StringValue,
+  ): Promise<UserSecurityTokenEntity> {
     const token = this.tokenService.sign<SignSecurityToken>(
-      {
-        sub: args.user.id,
-        purpose: args.type,
-        otp: args.otp,
-      },
-      args.expiresIn,
+      { sub: user.id },
+      expiresIn,
     );
 
     let userSecurityToken = await this.userSecurityTokenRepository.findOne({
-      where: { user: { id: args.user.id }, type: args.type },
+      where: { user: { id: user.id } },
       relations: ['user'],
     });
 
@@ -70,19 +58,59 @@ export class UsersService {
     } else {
       userSecurityToken = this.userSecurityTokenRepository.create({
         token,
-        user: args.user,
-        type: args.type,
+        user: user,
       });
     }
 
     return await this.userSecurityTokenRepository.save(userSecurityToken);
   }
 
-  private async sendEmailForVerification(user: UserEntity): Promise<void> {
-    const tokenEntity = await this.createOrUpdateSecurityToken({
-      user: user,
-      type: EnumSecurityTokenType.EMAIL_VERIFICATION,
+  private async verifyUserSecurityToken(
+    user: UserEntity,
+    token: string,
+  ): Promise<SignSecurityToken> {
+    const userSecurityToken = await this.userSecurityTokenRepository.findOne({
+      where: { user: { id: user.id } },
+      relations: ['user'],
     });
+
+    if (!userSecurityToken) {
+      throw new BadRequestException('Invalid token');
+    }
+
+    let signSecurityToken: SignSecurityToken;
+    try {
+      signSecurityToken =
+        this.tokenService.verifyToken<SignSecurityToken>(token);
+    } catch (err) {
+      if (err instanceof TokenExpiredError) {
+        await this.userSecurityTokenRepository.remove(userSecurityToken);
+        throw new BadRequestException('Expired token');
+      }
+
+      if (err instanceof JsonWebTokenError) {
+        await this.userSecurityTokenRepository.remove(userSecurityToken);
+        throw new BadRequestException('Invalid token');
+      }
+
+      throw new InternalServerErrorException(
+        'Unexpected error validating token',
+      );
+    }
+
+    if (userSecurityToken.token !== token) {
+      throw new BadRequestException('Invalid token');
+    }
+
+    return signSecurityToken;
+  }
+
+  /**
+   *
+   * @param user
+   */
+  private async sendEmailForVerification(user: UserEntity): Promise<void> {
+    const tokenEntity = await this.createOrUpdateUserSecurityToken(user, '72h');
     const userCreatedEvent = new UserCreatedEvent({
       firstName: user.firstName,
       lastName: user.lastName,
@@ -103,10 +131,6 @@ export class UsersService {
     });
   }
 
-  // findAll() {
-  //   return `This action returns all users`;
-  // }
-
   async findOne<K extends keyof UserEntity>(
     field: K,
     value: UserEntity[K],
@@ -118,121 +142,29 @@ export class UsersService {
     });
   }
 
-  // update(id: number, updateUserDto: UpdateUserDto) {
-  //   return `This action updates a #${id} user`;
-  // }
-
-  async remove(id: number) {
+  async remove(id: number): Promise<DeleteResult> {
     return await this.usersRepository.delete(id);
   }
 
-  async findById(id: number): Promise<UserEntity | null> {
-    return await this.usersRepository.findOne({ where: { id } });
-  }
-
-  private async verifySecurityToken(args: {
-    userId: number;
-    token: string;
-    type: EnumSecurityTokenType;
-    otp?: string;
-  }): Promise<SignSecurityToken> {
-    const userSecurityToken = await this.userSecurityTokenRepository.findOne({
-      where: { user: { id: args.userId }, type: args.type },
-      relations: ['user'],
-    });
-
-    if (!userSecurityToken) {
-      throw new BadRequestException('Invalid token');
-    }
-
-    let payload: SignSecurityToken;
-    try {
-      payload = this.tokenService.verifyToken<SignSecurityToken>(args.token);
-    } catch (err) {
-      if (err instanceof TokenExpiredError) {
-        await this.userSecurityTokenRepository.remove(userSecurityToken);
-        throw new BadRequestException('Expired token');
-      }
-
-      if (err instanceof JsonWebTokenError) {
-        await this.userSecurityTokenRepository.remove(userSecurityToken);
-        throw new BadRequestException('Invalid token');
-      }
-
-      throw new InternalServerErrorException(
-        'Unexpected error validating token',
-      );
-    }
-
-    if (userSecurityToken.token !== args.token) {
-      throw new BadRequestException('Invalid token');
-    }
-
-    if (args.otp && payload.otp !== args.otp) {
-      throw new BadRequestException('Invalid OTP code');
-    }
-
-    return payload;
-  }
-
-  async verifyEmail(email: string, token: string) {
-    const user = await this.usersRepository.findOne({ where: { email } });
+  async verifyEmail(email: string, token: string): Promise<void> {
+    const user = await this.findOne('email', email);
     if (!user)
       throw new NotFoundException(`User with email address ${email} not found`);
 
-    await this.verifySecurityToken({
-      userId: user.id,
-      token: token,
-      type: EnumSecurityTokenType.EMAIL_VERIFICATION,
-    });
+    await this.verifyUserSecurityToken(user, token);
 
     user.emailVerified = true;
     await this.usersRepository.save(user);
 
     await this.userSecurityTokenRepository.delete({
       user: { id: user.id },
-      type: EnumSecurityTokenType.EMAIL_VERIFICATION,
     });
-
-    return { message: 'Email verified successfully' };
   }
 
-  async sendNewEmailForVerification(email: string) {
-    const user = await this.usersRepository.findOne({ where: { email } });
+  async reSendEmailForVerification(email: string): Promise<void> {
+    const user = await this.findOne('email', email);
     if (!user)
       throw new NotFoundException(`User with email address ${email} not found`);
-
     void this.sendEmailForVerification(user);
-
-    return {
-      message:
-        'New email verification request completed successfully. A verification link will be sent.',
-    };
-  }
-
-  async resetPassword(resetPasswordDto: ResetPasswordDto) {
-    const user = await this.usersRepository.findOne({
-      where: { email: resetPasswordDto.email },
-    });
-    if (!user)
-      throw new NotFoundException(
-        `User with email address ${resetPasswordDto.email} not found`,
-      );
-
-    await this.verifySecurityToken({
-      userId: user.id,
-      token: resetPasswordDto.token,
-      type: EnumSecurityTokenType.PASSWORD_RESET,
-    });
-
-    user.password = resetPasswordDto.password;
-    await this.usersRepository.save(user); // O subscriber (beforeUpdate) vai aplicar o hash automaticamente
-
-    await this.userSecurityTokenRepository.delete({
-      user: { id: user.id },
-      type: EnumSecurityTokenType.PASSWORD_RESET,
-    });
-
-    return { message: 'Password reset successfully' };
   }
 }

@@ -7,6 +7,7 @@ import {
   Param,
   Post,
   Query,
+  Res,
 } from '@nestjs/common';
 import {
   ApiCreatedResponse,
@@ -14,11 +15,12 @@ import {
   ApiOperation,
   ApiTags,
 } from '@nestjs/swagger';
+import type { Response } from 'express';
+import { DeleteResult } from 'typeorm';
 
 import { CreateUserDto } from './dto/create-user.dto';
 import { EmailUserDto } from './dto/email-user.dto';
 import { OutputUserDto } from './dto/output-user.dto';
-import { ResetPasswordDto } from './dto/reset.password.dto';
 import { UsersService } from './users.service';
 
 @Controller('users')
@@ -62,9 +64,8 @@ export class UsersController {
   })
   @ApiOkResponse({
     description: 'User deleted successfully.',
-    //type: OutputUserDto,
   })
-  remove(@Param('id') id: string) {
+  remove(@Param('id') id: string): Promise<DeleteResult> {
     return this.usersService.remove(+id);
   }
 
@@ -74,11 +75,20 @@ export class UsersController {
     summary: 'Verify user email',
     description: 'This endpoint verifies a user email using a token.',
   })
-  emailVerification(
+  async verifyEmail(
     @Query('email') email: string,
     @Query('token') token: string,
-  ) {
-    return this.usersService.verifyEmail(email, token);
+    @Res() res: Response,
+  ): Promise<void> {
+    await this.usersService.verifyEmail(email, token);
+    res.send(`
+      <html>
+        <head><title>Email Verified</title></head>
+        <body>
+          <h1>Email verified successfully ✅</h1>
+        </body>
+      </html>
+    `);
   }
 
   @Post('e-verification')
@@ -88,26 +98,10 @@ export class UsersController {
     description:
       'This endpoint sends a new email verification link to the user based on the provided email address.',
   })
-  @ApiOkResponse({
-    description:
-      'New email verification request completed successfully. A verification link will be sent.',
-  })
-  newEmailVerification(@Body() emailUserDto: EmailUserDto) {
-    return this.usersService.sendNewEmailForVerification(emailUserDto.email);
-  }
-
-  @Post('reset-password')
-  @ApiPublicEndpoint()
-  @ApiOperation({
-    summary: 'Reset user password',
-    description:
-      'This endpoint resets the password of a user using a valid reset token.',
-  })
-  @ApiOkResponse({
-    description: 'Password reset successfully.',
-    type: ResetPasswordDto, // ou um DTO de resposta específico se preferir
-  })
-  resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
-    return this.usersService.resetPassword(resetPasswordDto);
+  @ApiOkResponse()
+  reSendEmailForVerification(
+    @Body() emailUserDto: EmailUserDto,
+  ): Promise<void> {
+    return this.usersService.reSendEmailForVerification(emailUserDto.email);
   }
 }
