@@ -1,0 +1,109 @@
+<html lang='pt-BR'>
+
+  <head>
+    <meta charset='UTF-8' />
+    <meta name='viewport' content='width=device-width, initial-scale=1.0' />
+    <title>Runner Shoot API</title>
+
+    <link rel='preconnect' href='https://fonts.googleapis.com' />
+    <link rel='preconnect' href='https://fonts.gstatic.com' crossorigin />
+    <link
+      href='https://fonts.googleapis.com/css2?family=Geist:wght@100..900&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap'
+      rel='stylesheet'
+    />
+
+    <link
+      href='https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css'
+      rel='stylesheet'
+      integrity='sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB'
+      crossorigin='anonymous'
+    />
+    <script
+      src='https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js'
+      integrity='sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI'
+      crossorigin='anonymous'
+    ></script>
+
+    <style>
+      :root {
+        --bs-body-font-family: 'Geist', sans-serif;
+        --bs-primary: oklch(0.65 0.25 25);
+        --bs-primary-hover: oklab(58.205% 0.20098 0.09166);
+      }
+      .brand-img {
+        max-width: 128px;
+        height: auto;
+        margin: 32px auto;
+        display: block;
+      }
+      .btn-primary {
+        border: var(--bs-primary);
+        background-color: var(--bs-primary);
+        &:hover {
+          background-color: var(--bs-primary-hover);
+        }
+        &:active {
+          background-color: var(--bs-primary) !important;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class='container d-flex justify-content-center py-3 h-100'>
+      <div class='row w-100 justify-content-center align-items-center'>
+        <div class='col-12 col-sm-10 col-md-8 col-lg-6 col-xl-4'>
+          <div class='card shadow border-0'>
+            <img
+              src='brand.png'
+              class='card-img-top img-fluid brand-img'
+              alt='Runner Shoot Image Brand'
+            />
+            <div class='card-body p-4 text-center'>
+              <h5 class='h4 card-title text-primary'>{{message}}</h5>
+              <p class="font-monospace mb-0">Seja bem-vindo(a) à Runner Shoot API!</p>
+            </div>
+            <div class='card-footer p-4'>
+              <div class='d-flex flex-column ___flex-xxl-row gap-3'>
+                <a
+                  href='docs'
+                  class='btn btn-primary icon-link icon-link-hover flex justify-content-center align-items-center px-4 w-100'
+                  target='_blank'
+                >Documentação swagger
+                  <svg
+                    xmlns='http://www.w3.org/2000/svg'
+                    class='bi'
+                    viewBox='0 0 16 16'
+                    aria-hidden='true'
+                  >
+                    <path
+                      d='M1 8a.5.5 0 0 1 .5-.5h11.793l-3.147-3.146a.5.5 0 0 1 .708-.708l4 4a.5.5 0 0 1 0 .708l-4 4a.5.5 0 0 1-.708-.708L13.293 8.5H1.5A.5.5 0 0 1 1 8z'
+                    />
+                  </svg>
+                </a>
+                <a
+                  href='https://www.joelestumano.com/'
+                  class='btn btn-dark icon-link icon-link-hover flex justify-content-center align-items-center px-4 w-100'
+                  target='_blank'
+                >Fale com o desenvolvedor
+                  <svg
+                    xmlns='http://www.w3.org/2000/svg'
+                    class='bi'
+                    viewBox='0 0 16 16'
+                    aria-hidden='true'
+                  >
+                    <path
+                      d='M1 8a.5.5 0 0 1 .5-.5h11.793l-3.147-3.146a.5.5 0 0 1 .708-.708l4 4a.5.5 0 0 1 0 .708l-4 4a.5.5 0 0 1-.708-.708L13.293 8.5H1.5A.5.5 0 0 1 1 8z'
+                    />
+                  </svg>
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Your other HTML content -->
+  </body>
+
+</html>

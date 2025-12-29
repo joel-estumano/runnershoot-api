@@ -1,6 +1,7 @@
 import { ApiPublicEndpoint } from '@modules/auth/decorators/api-public-endpoint.decorator';
-import { Controller, Get, Redirect } from '@nestjs/common';
+import { Controller, Get, Redirect, Res } from '@nestjs/common';
 import { ApiExcludeEndpoint } from '@nestjs/swagger';
+import type { Response } from 'express';
 
 import { AppService } from './app.service';
 
@@ -10,8 +11,10 @@ export class AppController {
 
   @Get()
   @ApiPublicEndpoint()
-  getHello(): string {
-    return this.appService.getHello();
+  root(@Res() res: Response) {
+    return res.render('index', {
+      message: this.appService.getHello(),
+    });
   }
 
   @Get('docs')
@@ -21,11 +24,4 @@ export class AppController {
   redirectToSwagger() {
     return;
   }
-
-  // @Get('roles')
-  // @UseGuards(RolesGuard)
-  // @Roles(EnumUserRole.ADMIN, EnumUserRole.USER)
-  // findAll() {
-  //   return 'Admins e usuários podem acessar!';
-  // }
 }
