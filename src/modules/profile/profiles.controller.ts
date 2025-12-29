@@ -1,9 +1,18 @@
 import { Roles } from '@modules/auth/decorators/user-roles.decorator';
 import { OwnershipGuard } from '@modules/auth/guards/ownership/ownership.guard';
 import { RolesGuard } from '@modules/auth/guards/roles/roles.guard';
-import { Body, Controller, Param, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 import {
   ApiCreatedResponse,
+  ApiOkResponse,
   ApiOperation,
   ApiParam,
   ApiTags,
@@ -12,6 +21,8 @@ import {
 import { EnumUserRole, UserEntity } from '../users/entities/user.entity';
 import { CreateProfileDto } from './dto/create-profile.dto';
 import { OutputProfileDto } from './dto/output-profile.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto';
+import { ProfileEntity } from './entities/profile.entity';
 import { UserByIdPipe } from './pipes/user-by-id/user-by-id.pipe';
 import { ProfilesService } from './profiles.service';
 
@@ -22,7 +33,7 @@ import { ProfilesService } from './profiles.service';
 export class ProfilesController {
   constructor(private readonly profilesService: ProfilesService) {}
 
-  @Post(':userId')
+  @Post(':id')
   @ApiOperation({
     summary: 'Create a new user profile by user ID',
     description: 'This endpoint creates a new user profile by user ID.',
@@ -31,12 +42,58 @@ export class ProfilesController {
     description: 'User profile created successfully.',
     type: OutputProfileDto,
   })
-  @ApiParam({ name: 'userId', type: Number, description: 'User ID' })
+  @ApiParam({
+    name: 'id',
+    type: Number,
+    description: 'User ID',
+  })
   create(
-    @Param('userId', UserByIdPipe) user: UserEntity,
+    @Param('id', UserByIdPipe) user: UserEntity,
     @Body() createProfileDto: CreateProfileDto,
   ) {
     return this.profilesService.create({ ...createProfileDto, user });
+  }
+
+  @Get(':id')
+  @ApiOperation({
+    summary: 'Get user profile by user ID',
+    description: 'This endpoint retrieves a user profile by user ID.',
+  })
+  @ApiOkResponse({
+    description: 'User profile retrieved successfully.',
+    type: OutputProfileDto,
+  })
+  @ApiParam({
+    name: 'id',
+    type: Number,
+    description: 'User ID',
+  })
+  findByUserId(
+    @Param('id', UserByIdPipe) user: UserEntity,
+  ): Promise<ProfileEntity | null> {
+    return this.profilesService.findByUserId(user.id);
+  }
+
+  @Patch(':id')
+  @ApiOperation({
+    summary: 'Update user profile by User ID',
+    description:
+      'Updates an existing user profile associated with the given user ID.',
+  })
+  @ApiOkResponse({
+    description: 'User profile updated successfully.',
+    type: OutputProfileDto,
+  })
+  @ApiParam({
+    name: 'id',
+    type: Number,
+    description: 'User ID',
+  })
+  async update(
+    @Param('id', UserByIdPipe) user: UserEntity,
+    @Body() updateProfileDto: UpdateProfileDto,
+  ): Promise<ProfileEntity> {
+    return this.profilesService.update(user.id, updateProfileDto);
   }
 
   // @Get()
@@ -47,11 +104,6 @@ export class ProfilesController {
   // @Get(':id')
   // findOne(@Param('id') id: string) {
   //   return this.profileService.findOne(+id);
-  // }
-
-  // @Patch(':id')
-  // update(@Param('id') id: string, @Body() updateProfileDto: UpdateProfileDto) {
-  //   return this.profileService.update(+id, updateProfileDto);
   // }
 
   // @Delete(':id')
