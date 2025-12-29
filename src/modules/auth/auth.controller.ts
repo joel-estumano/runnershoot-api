@@ -8,12 +8,7 @@ import {
   Res,
   UseGuards,
 } from '@nestjs/common';
-import {
-  ApiBody,
-  ApiExcludeController,
-  ApiOperation,
-  ApiTags,
-} from '@nestjs/swagger';
+import { ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Response } from 'express';
 
 import { AuthService } from './auth.service';
@@ -23,7 +18,6 @@ import { LocalAuthGuard } from './guards/local/local-auth.guard';
 
 @Controller('auth')
 @ApiTags('Auth')
-@ApiExcludeController()
 export class AuthController {
   constructor(private authService: AuthService) {}
 
@@ -57,16 +51,14 @@ export class AuthController {
   @ApiOperation({
     summary: 'User logout',
     description:
-      'Endpoint to remove the authentication cookie (access_token) and invalidate access on the client..',
+      'Endpoint to remove the authentication cookie (access_token) and invalidate access on the client.',
   })
   @HttpCode(HttpStatus.OK)
-  logout(@Res({ passthrough: true }) res: Response) {
+  logout(@Res({ passthrough: true }) res: Response): void {
     res.clearCookie('access_token', {
       httpOnly: true,
       secure: true,
       sameSite: 'none',
     });
-
-    return { message: 'Logout completed successfully!' };
   }
 }
