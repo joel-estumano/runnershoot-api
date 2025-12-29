@@ -2,15 +2,15 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 
 import { ProfileEntity } from './entities/profile.entity';
-import { ProfileService } from './profile.service';
+import { ProfilesService } from './profiles.service';
 
-describe('ProfileService', () => {
-  let service: ProfileService;
+describe('ProfilesService', () => {
+  let service: ProfilesService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
-        ProfileService,
+        ProfilesService,
         {
           provide: getRepositoryToken(ProfileEntity),
           useValue: {},
@@ -18,7 +18,7 @@ describe('ProfileService', () => {
       ],
     }).compile();
 
-    service = module.get<ProfileService>(ProfileService);
+    service = module.get<ProfilesService>(ProfilesService);
   });
 
   it('should be defined', () => {

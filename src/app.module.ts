@@ -8,7 +8,7 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
 
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { ProfileModule } from './modules/profile/profile.module';
+import { ProfilesModule } from './modules/profile/profiles.module';
 import { UsersModule } from './modules/users/users.module';
 
 @Module({
@@ -23,7 +23,7 @@ import { UsersModule } from './modules/users/users.module';
     }),
 
     UsersModule,
-    ProfileModule,
+    ProfilesModule,
     AuthModule,
   ],
   controllers: [AppController],

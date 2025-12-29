@@ -7,7 +7,7 @@ import { ProfileEntity } from './entities/profile.entity';
 //import { UpdateProfileDto } from './dto/update-profile.dto';
 
 @Injectable()
-export class ProfileService {
+export class ProfilesService {
   constructor(
     @InjectRepository(ProfileEntity)
     private readonly profilesRepository: Repository<ProfileEntity>,
