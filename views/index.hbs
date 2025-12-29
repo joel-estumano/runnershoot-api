@@ -28,20 +28,50 @@
       :root {
         --bs-body-font-family: 'Geist', sans-serif;
         --bs-primary: oklch(0.65 0.25 25);
+        --bs-primary-rgb: 255, 35, 53;
         --bs-primary-hover: oklab(58.205% 0.20098 0.09166);
       }
+
+      body::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        background-image: url('marathon-runners-group-finish-line-celebration.jpg');
+        background-position: center;
+        background-size: cover;
+        opacity: 0.2;
+        z-index: -2;
+      }
+
+      body::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        background: linear-gradient(
+          to right,
+          rgba(var(--bs-primary-rgb), 0.2),
+          rgba(var(--bs-primary-rgb), 0.1)
+        );
+        z-index: -1;
+      }
+
       .brand-img {
         max-width: 128px;
         height: auto;
         margin: 32px auto;
         display: block;
       }
+
       .btn-primary {
         border: var(--bs-primary);
         background-color: var(--bs-primary);
+
         &:hover {
           background-color: var(--bs-primary-hover);
         }
+
         &:active {
           background-color: var(--bs-primary) !important;
         }
@@ -49,7 +79,7 @@
     </style>
   </head>
 
-  <body>
+  <body class='position-relative bg-black'>
     <div class='container d-flex justify-content-center py-3 h-100'>
       <div class='row w-100 justify-content-center align-items-center'>
         <div class='col-12 col-sm-10 col-md-8 col-lg-6 col-xl-4'>
@@ -60,8 +90,12 @@
               alt='Runner Shoot Image Brand'
             />
             <div class='card-body p-4 text-center pt-0'>
-              <h5 class='h4 card-title fw-bold' style="color: var(--bs-primary);">{{message}}</h5>
-              <p class="font-monospace mb-0">Seja bem-vindo(a) à Runner Shoot API!</p>
+              <h5
+                class='h4 card-title fw-bold'
+                style='color: var(--bs-primary);'
+              >{{message}}</h5>
+              <p class='font-monospace mb-0'>Seja bem-vindo(a) à Runner Shoot
+                API!</p>
             </div>
             <div class='card-footer p-4'>
               <div class='d-flex flex-column gap-2'>
