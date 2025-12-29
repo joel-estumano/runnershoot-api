@@ -10,7 +10,7 @@ export class AppController {
   constructor(private readonly appService: AppService) {}
 
   @Get()
-  //@ApiPublicEndpoint()
+  @ApiPublicEndpoint()
   root(@Res() res: Response) {
     return res.render('index', {
       message: this.appService.getHello(),
