@@ -22,9 +22,9 @@ import { UsersModule } from './modules/users/users.module';
       delimiter: '.',
     }),
 
+    AuthModule,
     UsersModule,
     ProfilesModule,
-    AuthModule,
   ],
   controllers: [AppController],
   providers: [
